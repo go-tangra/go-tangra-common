@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package common.service.v1;
+
+import "google/protobuf/timestamp.proto";
+import "redact/v3/redact.proto";
+
+// ModuleRegistrationService handles dynamic module registration.
+// Modules call this service to register themselves with the admin gateway.
+service ModuleRegistrationService {
+  // Register a new module with the admin gateway.
+  // Called by modules on startup.
+  rpc RegisterModule(RegisterModuleRequest) returns (RegisterModuleResponse);
+
+  // Unregister a module from the admin gateway.
+  // Called by modules on graceful shutdown.
+  rpc UnregisterModule(UnregisterModuleRequest) returns (UnregisterModuleResponse);
+
+  // Module heartbeat to report health status.
+  // Called periodically by modules to indicate they are alive.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // List all registered modules.
+  // Used by admin UI to display module status.
+  rpc ListModules(ListModulesRequest) returns (ListModulesResponse);
+
+  // Get a specific module's details.
+  rpc GetModule(GetModuleRequest) returns (GetModuleResponse);
+}
+
+// RegisterModuleRequest contains all information needed to register a module.
+message RegisterModuleRequest {
+  // Module metadata
+  string module_id = 1; // Unique identifier: "echo", "lcm", "ipam"
+  string module_name = 2; // Display name: "Echo Service"
+  string version = 3; // Semver: "1.0.0"
+  string description = 4; // Module description
+
+  // Connection info
+  string grpc_endpoint = 5; // gRPC endpoint: "echo-service:9500"
+
+  // API definition (OpenAPI 3.0 YAML for routing - no menu extensions needed)
+  bytes openapi_spec = 10 [(redact.v3.value).bytes = "[OPENAPI_SPEC]"];
+
+  // Proto descriptor for gRPC transcoding (compiled FileDescriptorSet)
+  bytes proto_descriptor = 11 [(redact.v3.value).bytes = "[PROTO_DESCRIPTOR]"];
+
+  // Menu definitions (separate YAML file from cmd/server/assets/menus.yaml)
+  bytes menus_yaml = 12 [(redact.v3.value).bytes = "[MENUS_YAML]"];
+
+  // Authentication token for registration
+  string auth_token = 20 [(redact.v3.value).string = "[REDACTED]"];
+}
+
+// RegisterModuleResponse is returned after successful registration.
+message RegisterModuleResponse {
+  string registration_id = 1; // UUID for this registration instance
+  ModuleStatus status = 2; // Current status after registration
+  string message = 3; // Human-readable status message
+}
+
+// UnregisterModuleRequest is sent when a module wants to unregister.
+message UnregisterModuleRequest {
+  string module_id = 1; // Module to unregister
+  string auth_token = 2; // Authentication token
+}
+
+// UnregisterModuleResponse is returned after unregistration.
+message UnregisterModuleResponse {
+  bool success = 1; // Whether unregistration was successful
+  string message = 2; // Human-readable message
+}
+
+// HeartbeatRequest is sent periodically by modules.
+message HeartbeatRequest {
+  string module_id = 1; // Module sending heartbeat
+  ModuleHealth health = 2; // Current health status
+  string message = 3; // Optional status message
+}
+
+// HeartbeatResponse acknowledges the heartbeat.
+message HeartbeatResponse {
+  bool acknowledged = 1; // Whether heartbeat was accepted
+  google.protobuf.Timestamp next_heartbeat = 2; // Suggested time for next heartbeat
+}
+
+// ListModulesRequest for querying registered modules.
+message ListModulesRequest {
+  optional ModuleStatus status = 1; // Filter by status
+  optional ModuleHealth health = 2; // Filter by health
+}
+
+// ListModulesResponse contains the list of modules.
+message ListModulesResponse {
+  repeated Module modules = 1;
+  int32 total = 2;
+}
+
+// GetModuleRequest for fetching a single module.
+message GetModuleRequest {
+  string module_id = 1;
+}
+
+// GetModuleResponse contains the requested module.
+message GetModuleResponse {
+  Module module = 1;
+}
+
+// Module represents a registered module.
+message Module {
+  string module_id = 1;
+  string module_name = 2;
+  string version = 3;
+  string description = 4;
+  string grpc_endpoint = 5;
+  ModuleStatus status = 6;
+  ModuleHealth health = 7;
+  google.protobuf.Timestamp registered_at = 8;
+  google.protobuf.Timestamp last_heartbeat = 9;
+  string registration_id = 10;
+
+  // Statistics
+  int32 menu_count = 20;
+  int32 api_count = 21;
+  int32 route_count = 22;
+}
+
+// ModuleStatus represents the registration status of a module.
+enum ModuleStatus {
+  MODULE_STATUS_UNSPECIFIED = 0;
+  MODULE_STATUS_ACTIVE = 1; // Module is registered and active
+  MODULE_STATUS_INACTIVE = 2; // Module is registered but inactive
+  MODULE_STATUS_ERROR = 3; // Module registration had errors
+}
+
+// ModuleHealth represents the health status of a module.
+enum ModuleHealth {
+  MODULE_HEALTH_UNSPECIFIED = 0;
+  MODULE_HEALTH_HEALTHY = 1; // Module is healthy
+  MODULE_HEALTH_DEGRADED = 2; // Module is degraded but functional
+  MODULE_HEALTH_UNHEALTHY = 3; // Module is unhealthy
+}

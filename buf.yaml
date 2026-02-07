@@ -1,0 +1,23 @@
+version: v2
+
+modules:
+  - path: protos
+    name: buf.build/go-tangra/common
+    lint:
+      use:
+        - STANDARD
+    breaking:
+      use:
+        - FILE
+
+deps:
+  - 'buf.build/googleapis/googleapis'
+  - 'buf.build/menta2k-org/redact'
+
+lint:
+  use:
+    - DEFAULT
+
+breaking:
+  use:
+    - FILE
