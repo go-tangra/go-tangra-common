@@ -6,6 +6,7 @@ require (
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/google/uuid v1.6.0
 	github.com/menta2k/protoc-gen-redact/v3 v3.0.0-20251106150014-896cdd075ab1
+	github.com/tx7do/go-crud/viewer v0.0.6
 	github.com/tx7do/kratos-bootstrap/bootstrap v0.1.16
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
