@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package common.service.v1;
+
+// LcmBootstrapService allows modules to request their own TLS certificates from LCM.
+// This enables self-service certificate provisioning without requiring LCM source changes.
+service LcmBootstrapService {
+  // BootstrapCertificates generates and returns CA, client, and server certificates for a module.
+  // The caller must provide a valid module_registration_secret.
+  rpc BootstrapCertificates(BootstrapCertificatesRequest) returns (BootstrapCertificatesResponse);
+}
+
+message BootstrapCertificatesRequest {
+  string module_id = 1;            // Module identifier (e.g. "deployer", "warden")
+  string secret = 2;               // module_registration_secret for authentication
+  repeated string dns_names = 3;   // SANs for server certificate
+  repeated string ip_addresses = 4; // IP SANs for server certificate
+}
+
+message BootstrapCertificatesResponse {
+  string ca_certificate_pem = 1;
+  string client_certificate_pem = 2;
+  string client_key_pem = 3;
+  string server_certificate_pem = 4;
+  string server_key_pem = 5;
+  string message = 6;
+}
