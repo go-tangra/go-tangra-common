@@ -112,6 +112,10 @@ func (x *RegisterModuleRequest) Redact() string {
 
 	// Safe field: GrpcEndpoint
 
+	// Safe field: FrontendEntryUrl
+
+	// Safe field: HttpEndpoint
+
 	// Redacting field: OpenapiSpec
 	x.OpenapiSpec = []byte(`[OPENAPI_SPEC]`)
 
@@ -259,6 +263,10 @@ func (x *Module) Redact() string {
 	// Safe field: LastHeartbeat
 
 	// Safe field: RegistrationId
+
+	// Safe field: FrontendEntryUrl
+
+	// Safe field: HttpEndpoint
 
 	// Safe field: MenuCount
 

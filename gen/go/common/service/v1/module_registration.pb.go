@@ -138,7 +138,9 @@ type RegisterModuleRequest struct {
 	Version     string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`                         // Semver: "1.0.0"
 	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`                 // Module description
 	// Connection info
-	GrpcEndpoint string `protobuf:"bytes,5,opt,name=grpc_endpoint,json=grpcEndpoint,proto3" json:"grpc_endpoint,omitempty"` // gRPC endpoint: "echo-service:9500"
+	GrpcEndpoint     string `protobuf:"bytes,5,opt,name=grpc_endpoint,json=grpcEndpoint,proto3" json:"grpc_endpoint,omitempty"`               // gRPC endpoint: "echo-service:9500"
+	FrontendEntryUrl string `protobuf:"bytes,6,opt,name=frontend_entry_url,json=frontendEntryUrl,proto3" json:"frontend_entry_url,omitempty"` // Module Federation remoteEntry.js URL
+	HttpEndpoint     string `protobuf:"bytes,7,opt,name=http_endpoint,json=httpEndpoint,proto3" json:"http_endpoint,omitempty"`               // HTTP server endpoint for frontend assets (e.g., "ipam-service:9401")
 	// API definition (OpenAPI 3.0 YAML for routing - no menu extensions needed)
 	OpenapiSpec []byte `protobuf:"bytes,10,opt,name=openapi_spec,json=openapiSpec,proto3" json:"openapi_spec,omitempty"`
 	// Proto descriptor for gRPC transcoding (compiled FileDescriptorSet)
@@ -212,6 +214,20 @@ func (x *RegisterModuleRequest) GetDescription() string {
 func (x *RegisterModuleRequest) GetGrpcEndpoint() string {
 	if x != nil {
 		return x.GrpcEndpoint
+	}
+	return ""
+}
+
+func (x *RegisterModuleRequest) GetFrontendEntryUrl() string {
+	if x != nil {
+		return x.FrontendEntryUrl
+	}
+	return ""
+}
+
+func (x *RegisterModuleRequest) GetHttpEndpoint() string {
+	if x != nil {
+		return x.HttpEndpoint
 	}
 	return ""
 }
@@ -723,17 +739,19 @@ func (x *GetModuleResponse) GetModule() *Module {
 
 // Module represents a registered module.
 type Module struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ModuleId       string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
-	ModuleName     string                 `protobuf:"bytes,2,opt,name=module_name,json=moduleName,proto3" json:"module_name,omitempty"`
-	Version        string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	Description    string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	GrpcEndpoint   string                 `protobuf:"bytes,5,opt,name=grpc_endpoint,json=grpcEndpoint,proto3" json:"grpc_endpoint,omitempty"`
-	Status         ModuleStatus           `protobuf:"varint,6,opt,name=status,proto3,enum=common.service.v1.ModuleStatus" json:"status,omitempty"`
-	Health         ModuleHealth           `protobuf:"varint,7,opt,name=health,proto3,enum=common.service.v1.ModuleHealth" json:"health,omitempty"`
-	RegisteredAt   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=registered_at,json=registeredAt,proto3" json:"registered_at,omitempty"`
-	LastHeartbeat  *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=last_heartbeat,json=lastHeartbeat,proto3" json:"last_heartbeat,omitempty"`
-	RegistrationId string                 `protobuf:"bytes,10,opt,name=registration_id,json=registrationId,proto3" json:"registration_id,omitempty"`
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	ModuleId         string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
+	ModuleName       string                 `protobuf:"bytes,2,opt,name=module_name,json=moduleName,proto3" json:"module_name,omitempty"`
+	Version          string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Description      string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	GrpcEndpoint     string                 `protobuf:"bytes,5,opt,name=grpc_endpoint,json=grpcEndpoint,proto3" json:"grpc_endpoint,omitempty"`
+	Status           ModuleStatus           `protobuf:"varint,6,opt,name=status,proto3,enum=common.service.v1.ModuleStatus" json:"status,omitempty"`
+	Health           ModuleHealth           `protobuf:"varint,7,opt,name=health,proto3,enum=common.service.v1.ModuleHealth" json:"health,omitempty"`
+	RegisteredAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=registered_at,json=registeredAt,proto3" json:"registered_at,omitempty"`
+	LastHeartbeat    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=last_heartbeat,json=lastHeartbeat,proto3" json:"last_heartbeat,omitempty"`
+	RegistrationId   string                 `protobuf:"bytes,10,opt,name=registration_id,json=registrationId,proto3" json:"registration_id,omitempty"`
+	FrontendEntryUrl string                 `protobuf:"bytes,11,opt,name=frontend_entry_url,json=frontendEntryUrl,proto3" json:"frontend_entry_url,omitempty"` // Module Federation remoteEntry.js URL
+	HttpEndpoint     string                 `protobuf:"bytes,12,opt,name=http_endpoint,json=httpEndpoint,proto3" json:"http_endpoint,omitempty"`               // HTTP server endpoint for frontend assets
 	// Statistics
 	MenuCount     int32 `protobuf:"varint,20,opt,name=menu_count,json=menuCount,proto3" json:"menu_count,omitempty"`
 	ApiCount      int32 `protobuf:"varint,21,opt,name=api_count,json=apiCount,proto3" json:"api_count,omitempty"`
@@ -842,6 +860,20 @@ func (x *Module) GetRegistrationId() string {
 	return ""
 }
 
+func (x *Module) GetFrontendEntryUrl() string {
+	if x != nil {
+		return x.FrontendEntryUrl
+	}
+	return ""
+}
+
+func (x *Module) GetHttpEndpoint() string {
+	if x != nil {
+		return x.HttpEndpoint
+	}
+	return ""
+}
+
 func (x *Module) GetMenuCount() int32 {
 	if x != nil {
 		return x.MenuCount
@@ -867,14 +899,16 @@ var File_common_service_v1_module_registration_proto protoreflect.FileDescriptor
 
 const file_common_service_v1_module_registration_proto_rawDesc = "" +
 	"\n" +
-	"+common/service/v1/module_registration.proto\x12\x11common.service.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16redact/v3/redact.proto\"\x9b\x03\n" +
+	"+common/service/v1/module_registration.proto\x12\x11common.service.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16redact/v3/redact.proto\"\xee\x03\n" +
 	"\x15RegisterModuleRequest\x12\x1b\n" +
 	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\x12\x1f\n" +
 	"\vmodule_name\x18\x02 \x01(\tR\n" +
 	"moduleName\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12#\n" +
-	"\rgrpc_endpoint\x18\x05 \x01(\tR\fgrpcEndpoint\x128\n" +
+	"\rgrpc_endpoint\x18\x05 \x01(\tR\fgrpcEndpoint\x12,\n" +
+	"\x12frontend_entry_url\x18\x06 \x01(\tR\x10frontendEntryUrl\x12#\n" +
+	"\rhttp_endpoint\x18\a \x01(\tR\fhttpEndpoint\x128\n" +
 	"\fopenapi_spec\x18\n" +
 	" \x01(\fB\x15ڶ\x1a\x11\x82\x01\x0e[OPENAPI_SPEC]R\vopenapiSpec\x12D\n" +
 	"\x10proto_descriptor\x18\v \x01(\fB\x19ڶ\x1a\x15\x82\x01\x12[PROTO_DESCRIPTOR]R\x0fprotoDescriptor\x122\n" +
@@ -912,7 +946,7 @@ const file_common_service_v1_module_registration_proto_rawDesc = "" +
 	"\x10GetModuleRequest\x12\x1b\n" +
 	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\"F\n" +
 	"\x11GetModuleResponse\x121\n" +
-	"\x06module\x18\x01 \x01(\v2\x19.common.service.v1.ModuleR\x06module\"\xa3\x04\n" +
+	"\x06module\x18\x01 \x01(\v2\x19.common.service.v1.ModuleR\x06module\"\xf6\x04\n" +
 	"\x06Module\x12\x1b\n" +
 	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\x12\x1f\n" +
 	"\vmodule_name\x18\x02 \x01(\tR\n" +
@@ -925,7 +959,9 @@ const file_common_service_v1_module_registration_proto_rawDesc = "" +
 	"\rregistered_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\fregisteredAt\x12A\n" +
 	"\x0elast_heartbeat\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\rlastHeartbeat\x12'\n" +
 	"\x0fregistration_id\x18\n" +
-	" \x01(\tR\x0eregistrationId\x12\x1d\n" +
+	" \x01(\tR\x0eregistrationId\x12,\n" +
+	"\x12frontend_entry_url\x18\v \x01(\tR\x10frontendEntryUrl\x12#\n" +
+	"\rhttp_endpoint\x18\f \x01(\tR\fhttpEndpoint\x12\x1d\n" +
 	"\n" +
 	"menu_count\x18\x14 \x01(\x05R\tmenuCount\x12\x1b\n" +
 	"\tapi_count\x18\x15 \x01(\x05R\bapiCount\x12\x1f\n" +

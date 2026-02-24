@@ -38,6 +38,8 @@ message RegisterModuleRequest {
 
   // Connection info
   string grpc_endpoint = 5; // gRPC endpoint: "echo-service:9500"
+  string frontend_entry_url = 6; // Module Federation remoteEntry.js URL
+  string http_endpoint = 7; // HTTP server endpoint for frontend assets (e.g., "ipam-service:9401")
 
   // API definition (OpenAPI 3.0 YAML for routing - no menu extensions needed)
   bytes openapi_spec = 10 [(redact.v3.value).bytes = "[OPENAPI_SPEC]"];
@@ -118,6 +120,8 @@ message Module {
   google.protobuf.Timestamp registered_at = 8;
   google.protobuf.Timestamp last_heartbeat = 9;
   string registration_id = 10;
+  string frontend_entry_url = 11; // Module Federation remoteEntry.js URL
+  string http_endpoint = 12; // HTTP server endpoint for frontend assets
 
   // Statistics
   int32 menu_count = 20;

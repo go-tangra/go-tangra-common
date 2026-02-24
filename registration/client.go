@@ -21,6 +21,8 @@ type Config struct {
 	Version           string
 	Description       string
 	GRPCEndpoint      string
+	FrontendEntryUrl  string
+	HttpEndpoint      string
 	AdminEndpoint     string
 	OpenapiSpec       []byte
 	ProtoDescriptor   []byte
@@ -66,15 +68,17 @@ func (c *Client) Register(ctx context.Context) error {
 	c.log.Infof("Registering module %s with admin gateway at %s", c.config.ModuleID, c.config.AdminEndpoint)
 
 	req := &commonV1.RegisterModuleRequest{
-		ModuleId:        c.config.ModuleID,
-		ModuleName:      c.config.ModuleName,
-		Version:         c.config.Version,
-		Description:     c.config.Description,
-		GrpcEndpoint:    c.config.GRPCEndpoint,
-		OpenapiSpec:     c.config.OpenapiSpec,
-		ProtoDescriptor: c.config.ProtoDescriptor,
-		MenusYaml:       c.config.MenusYaml,
-		AuthToken:       c.config.AuthToken,
+		ModuleId:         c.config.ModuleID,
+		ModuleName:       c.config.ModuleName,
+		Version:          c.config.Version,
+		Description:      c.config.Description,
+		GrpcEndpoint:     c.config.GRPCEndpoint,
+		FrontendEntryUrl: c.config.FrontendEntryUrl,
+		HttpEndpoint:     c.config.HttpEndpoint,
+		OpenapiSpec:      c.config.OpenapiSpec,
+		ProtoDescriptor:  c.config.ProtoDescriptor,
+		MenusYaml:        c.config.MenusYaml,
+		AuthToken:        c.config.AuthToken,
 	}
 
 	var lastErr error
