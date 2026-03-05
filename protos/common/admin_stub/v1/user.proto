@@ -8,12 +8,23 @@ package common.admin_stub.v1;
 option go_package = "github.com/go-tangra/go-tangra-common/gen/go/common/admin_stub/v1;adminstubpb";
 
 message AdminUser {
+  // Matches user.service.v1.User.Status enum values
+  enum Status {
+    DISABLED = 0;
+    NORMAL = 1;
+    PENDING = 2;
+    LOCKED = 3;
+    EXPIRED = 4;
+    CLOSED = 9;
+  }
+
   uint32 id = 1;
   repeated string org_unit_names = 7;
   repeated string position_names = 11;
   string username = 20;
   string realname = 22;
   string email = 24;
+  optional Status status = 52;
 }
 
 message ListAdminUsersResponse {
