@@ -13,6 +13,9 @@ managed:
     - file_option: go_package
       path: common/service/v1
       value: github.com/go-tangra/go-tangra-common/gen/go/common/service/v1;commonpb
+    - file_option: go_package
+      path: common/admin_stub/v1
+      value: github.com/go-tangra/go-tangra-common/gen/go/common/admin_stub/v1;adminstubpb
 
 plugins:
   # generate go code

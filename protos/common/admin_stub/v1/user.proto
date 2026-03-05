@@ -1,0 +1,22 @@
+// Minimal stub of admin-service User types for gRPC client calls.
+// Field numbers must match the portal's user.service.v1.User and ListUserResponse.
+// Only includes fields needed by modules (warden, HR, etc.).
+syntax = "proto3";
+
+package common.admin_stub.v1;
+
+option go_package = "github.com/go-tangra/go-tangra-common/gen/go/common/admin_stub/v1;adminstubpb";
+
+message AdminUser {
+  uint32 id = 1;
+  repeated string org_unit_names = 7;
+  repeated string position_names = 11;
+  string username = 20;
+  string realname = 22;
+  string email = 24;
+}
+
+message ListAdminUsersResponse {
+  repeated AdminUser items = 1;
+  int32 total = 2;
+}

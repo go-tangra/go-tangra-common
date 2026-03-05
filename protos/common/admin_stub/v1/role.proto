@@ -1,0 +1,20 @@
+// Minimal stub of admin-service Role types for gRPC client calls.
+// Field numbers must match the portal's user.service.v1.Role and ListRoleResponse.
+// Only includes fields needed by modules (warden, HR, etc.).
+syntax = "proto3";
+
+package common.admin_stub.v1;
+
+option go_package = "github.com/go-tangra/go-tangra-common/gen/go/common/admin_stub/v1;adminstubpb";
+
+message AdminRole {
+  uint32 id = 1;
+  string name = 2;
+  string code = 3;
+  string description = 6;
+}
+
+message ListAdminRolesResponse {
+  repeated AdminRole items = 1;
+  uint64 total = 2;
+}
