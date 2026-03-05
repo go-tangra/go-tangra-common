@@ -25,6 +25,65 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Matches user.service.v1.User.Status enum values
+type AdminUser_Status int32
+
+const (
+	AdminUser_DISABLED AdminUser_Status = 0
+	AdminUser_NORMAL   AdminUser_Status = 1
+	AdminUser_PENDING  AdminUser_Status = 2
+	AdminUser_LOCKED   AdminUser_Status = 3
+	AdminUser_EXPIRED  AdminUser_Status = 4
+	AdminUser_CLOSED   AdminUser_Status = 9
+)
+
+// Enum value maps for AdminUser_Status.
+var (
+	AdminUser_Status_name = map[int32]string{
+		0: "DISABLED",
+		1: "NORMAL",
+		2: "PENDING",
+		3: "LOCKED",
+		4: "EXPIRED",
+		9: "CLOSED",
+	}
+	AdminUser_Status_value = map[string]int32{
+		"DISABLED": 0,
+		"NORMAL":   1,
+		"PENDING":  2,
+		"LOCKED":   3,
+		"EXPIRED":  4,
+		"CLOSED":   9,
+	}
+)
+
+func (x AdminUser_Status) Enum() *AdminUser_Status {
+	p := new(AdminUser_Status)
+	*p = x
+	return p
+}
+
+func (x AdminUser_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AdminUser_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_common_admin_stub_v1_user_proto_enumTypes[0].Descriptor()
+}
+
+func (AdminUser_Status) Type() protoreflect.EnumType {
+	return &file_common_admin_stub_v1_user_proto_enumTypes[0]
+}
+
+func (x AdminUser_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AdminUser_Status.Descriptor instead.
+func (AdminUser_Status) EnumDescriptor() ([]byte, []int) {
+	return file_common_admin_stub_v1_user_proto_rawDescGZIP(), []int{0, 0}
+}
+
 type AdminUser struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -33,6 +92,7 @@ type AdminUser struct {
 	Username      string                 `protobuf:"bytes,20,opt,name=username,proto3" json:"username,omitempty"`
 	Realname      string                 `protobuf:"bytes,22,opt,name=realname,proto3" json:"realname,omitempty"`
 	Email         string                 `protobuf:"bytes,24,opt,name=email,proto3" json:"email,omitempty"`
+	Status        *AdminUser_Status      `protobuf:"varint,52,opt,name=status,proto3,enum=common.admin_stub.v1.AdminUser_Status,oneof" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -109,6 +169,13 @@ func (x *AdminUser) GetEmail() string {
 	return ""
 }
 
+func (x *AdminUser) GetStatus() AdminUser_Status {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return AdminUser_DISABLED
+}
+
 type ListAdminUsersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []*AdminUser           `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
@@ -165,14 +232,26 @@ var File_common_admin_stub_v1_user_proto protoreflect.FileDescriptor
 
 const file_common_admin_stub_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x1fcommon/admin_stub/v1/user.proto\x12\x14common.admin_stub.v1\"\xb6\x01\n" +
+	"\x1fcommon/admin_stub/v1/user.proto\x12\x14common.admin_stub.v1\"\xdc\x02\n" +
 	"\tAdminUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12$\n" +
 	"\x0eorg_unit_names\x18\a \x03(\tR\forgUnitNames\x12%\n" +
 	"\x0eposition_names\x18\v \x03(\tR\rpositionNames\x12\x1a\n" +
 	"\busername\x18\x14 \x01(\tR\busername\x12\x1a\n" +
 	"\brealname\x18\x16 \x01(\tR\brealname\x12\x14\n" +
-	"\x05email\x18\x18 \x01(\tR\x05email\"e\n" +
+	"\x05email\x18\x18 \x01(\tR\x05email\x12C\n" +
+	"\x06status\x184 \x01(\x0e2&.common.admin_stub.v1.AdminUser.StatusH\x00R\x06status\x88\x01\x01\"T\n" +
+	"\x06Status\x12\f\n" +
+	"\bDISABLED\x10\x00\x12\n" +
+	"\n" +
+	"\x06NORMAL\x10\x01\x12\v\n" +
+	"\aPENDING\x10\x02\x12\n" +
+	"\n" +
+	"\x06LOCKED\x10\x03\x12\v\n" +
+	"\aEXPIRED\x10\x04\x12\n" +
+	"\n" +
+	"\x06CLOSED\x10\tB\t\n" +
+	"\a_status\"e\n" +
 	"\x16ListAdminUsersResponse\x125\n" +
 	"\x05items\x18\x01 \x03(\v2\x1f.common.admin_stub.v1.AdminUserR\x05items\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05totalB\xe2\x01\n" +
@@ -190,18 +269,21 @@ func file_common_admin_stub_v1_user_proto_rawDescGZIP() []byte {
 	return file_common_admin_stub_v1_user_proto_rawDescData
 }
 
+var file_common_admin_stub_v1_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_common_admin_stub_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_common_admin_stub_v1_user_proto_goTypes = []any{
-	(*AdminUser)(nil),              // 0: common.admin_stub.v1.AdminUser
-	(*ListAdminUsersResponse)(nil), // 1: common.admin_stub.v1.ListAdminUsersResponse
+	(AdminUser_Status)(0),          // 0: common.admin_stub.v1.AdminUser.Status
+	(*AdminUser)(nil),              // 1: common.admin_stub.v1.AdminUser
+	(*ListAdminUsersResponse)(nil), // 2: common.admin_stub.v1.ListAdminUsersResponse
 }
 var file_common_admin_stub_v1_user_proto_depIdxs = []int32{
-	0, // 0: common.admin_stub.v1.ListAdminUsersResponse.items:type_name -> common.admin_stub.v1.AdminUser
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 0: common.admin_stub.v1.AdminUser.status:type_name -> common.admin_stub.v1.AdminUser.Status
+	1, // 1: common.admin_stub.v1.ListAdminUsersResponse.items:type_name -> common.admin_stub.v1.AdminUser
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_common_admin_stub_v1_user_proto_init() }
@@ -209,18 +291,20 @@ func file_common_admin_stub_v1_user_proto_init() {
 	if File_common_admin_stub_v1_user_proto != nil {
 		return
 	}
+	file_common_admin_stub_v1_user_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_admin_stub_v1_user_proto_rawDesc), len(file_common_admin_stub_v1_user_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_common_admin_stub_v1_user_proto_goTypes,
 		DependencyIndexes: file_common_admin_stub_v1_user_proto_depIdxs,
+		EnumInfos:         file_common_admin_stub_v1_user_proto_enumTypes,
 		MessageInfos:      file_common_admin_stub_v1_user_proto_msgTypes,
 	}.Build()
 	File_common_admin_stub_v1_user_proto = out.File
