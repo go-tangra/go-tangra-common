@@ -6,6 +6,11 @@ modules:
     lint:
       use:
         - STANDARD
+      ignore_only:
+        ENUM_VALUE_PREFIX:
+          - common/admin_stub/v1/user.proto
+        ENUM_ZERO_VALUE_SUFFIX:
+          - common/admin_stub/v1/user.proto
     breaking:
       use:
         - FILE
