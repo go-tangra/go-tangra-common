@@ -24,6 +24,7 @@ const (
 	ModuleRegistrationService_Heartbeat_FullMethodName        = "/common.service.v1.ModuleRegistrationService/Heartbeat"
 	ModuleRegistrationService_ListModules_FullMethodName      = "/common.service.v1.ModuleRegistrationService/ListModules"
 	ModuleRegistrationService_GetModule_FullMethodName        = "/common.service.v1.ModuleRegistrationService/GetModule"
+	ModuleRegistrationService_ResolveModule_FullMethodName    = "/common.service.v1.ModuleRegistrationService/ResolveModule"
 )
 
 // ModuleRegistrationServiceClient is the client API for ModuleRegistrationService service.
@@ -47,6 +48,10 @@ type ModuleRegistrationServiceClient interface {
 	ListModules(ctx context.Context, in *ListModulesRequest, opts ...grpc.CallOption) (*ListModulesResponse, error)
 	// Get a specific module's details.
 	GetModule(ctx context.Context, in *GetModuleRequest, opts ...grpc.CallOption) (*GetModuleResponse, error)
+	// Resolve a module's connection info by module_id.
+	// Used by modules that need to call other modules (module-to-module communication).
+	// Returns the target module's gRPC endpoint and TLS server name.
+	ResolveModule(ctx context.Context, in *ResolveModuleRequest, opts ...grpc.CallOption) (*ResolveModuleResponse, error)
 }
 
 type moduleRegistrationServiceClient struct {
@@ -107,6 +112,16 @@ func (c *moduleRegistrationServiceClient) GetModule(ctx context.Context, in *Get
 	return out, nil
 }
 
+func (c *moduleRegistrationServiceClient) ResolveModule(ctx context.Context, in *ResolveModuleRequest, opts ...grpc.CallOption) (*ResolveModuleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveModuleResponse)
+	err := c.cc.Invoke(ctx, ModuleRegistrationService_ResolveModule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ModuleRegistrationServiceServer is the server API for ModuleRegistrationService service.
 // All implementations must embed UnimplementedModuleRegistrationServiceServer
 // for forward compatibility.
@@ -128,6 +143,10 @@ type ModuleRegistrationServiceServer interface {
 	ListModules(context.Context, *ListModulesRequest) (*ListModulesResponse, error)
 	// Get a specific module's details.
 	GetModule(context.Context, *GetModuleRequest) (*GetModuleResponse, error)
+	// Resolve a module's connection info by module_id.
+	// Used by modules that need to call other modules (module-to-module communication).
+	// Returns the target module's gRPC endpoint and TLS server name.
+	ResolveModule(context.Context, *ResolveModuleRequest) (*ResolveModuleResponse, error)
 	mustEmbedUnimplementedModuleRegistrationServiceServer()
 }
 
@@ -152,6 +171,9 @@ func (UnimplementedModuleRegistrationServiceServer) ListModules(context.Context,
 }
 func (UnimplementedModuleRegistrationServiceServer) GetModule(context.Context, *GetModuleRequest) (*GetModuleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetModule not implemented")
+}
+func (UnimplementedModuleRegistrationServiceServer) ResolveModule(context.Context, *ResolveModuleRequest) (*ResolveModuleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveModule not implemented")
 }
 func (UnimplementedModuleRegistrationServiceServer) mustEmbedUnimplementedModuleRegistrationServiceServer() {
 }
@@ -265,6 +287,24 @@ func _ModuleRegistrationService_GetModule_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModuleRegistrationService_ResolveModule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveModuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModuleRegistrationServiceServer).ResolveModule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ModuleRegistrationService_ResolveModule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModuleRegistrationServiceServer).ResolveModule(ctx, req.(*ResolveModuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ModuleRegistrationService_ServiceDesc is the grpc.ServiceDesc for ModuleRegistrationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -291,6 +331,10 @@ var ModuleRegistrationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetModule",
 			Handler:    _ModuleRegistrationService_GetModule_Handler,
+		},
+		{
+			MethodName: "ResolveModule",
+			Handler:    _ModuleRegistrationService_ResolveModule_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

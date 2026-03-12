@@ -26,6 +26,11 @@ service ModuleRegistrationService {
 
   // Get a specific module's details.
   rpc GetModule(GetModuleRequest) returns (GetModuleResponse);
+
+  // Resolve a module's connection info by module_id.
+  // Used by modules that need to call other modules (module-to-module communication).
+  // Returns the target module's gRPC endpoint and TLS server name.
+  rpc ResolveModule(ResolveModuleRequest) returns (ResolveModuleResponse);
 }
 
 // RegisterModuleRequest contains all information needed to register a module.
@@ -40,6 +45,10 @@ message RegisterModuleRequest {
   string grpc_endpoint = 5; // gRPC endpoint: "echo-service:9500"
   string frontend_entry_url = 6; // Module Federation remoteEntry.js URL
   string http_endpoint = 7; // HTTP server endpoint for frontend assets (e.g., "ipam-service:9401")
+
+  // TLS server name for mTLS verification (e.g. "warden-service").
+  // If empty, defaults to "{module_id}-service".
+  string server_name = 8;
 
   // API definition (OpenAPI 3.0 YAML for routing - no menu extensions needed)
   bytes openapi_spec = 10 [(redact.v3.value).bytes = "[OPENAPI_SPEC]"];
@@ -122,6 +131,7 @@ message Module {
   string registration_id = 10;
   string frontend_entry_url = 11; // Module Federation remoteEntry.js URL
   string http_endpoint = 12; // HTTP server endpoint for frontend assets
+  string server_name = 13; // TLS server name for mTLS verification
 
   // Statistics
   int32 menu_count = 20;
@@ -143,4 +153,17 @@ enum ModuleHealth {
   MODULE_HEALTH_HEALTHY = 1; // Module is healthy
   MODULE_HEALTH_DEGRADED = 2; // Module is degraded but functional
   MODULE_HEALTH_UNHEALTHY = 3; // Module is unhealthy
+}
+
+// ResolveModuleRequest is used by modules to discover other modules' connection info.
+message ResolveModuleRequest {
+  string module_id = 1; // Target module to resolve (e.g. "warden", "paperless")
+}
+
+// ResolveModuleResponse returns connection info for the resolved module.
+message ResolveModuleResponse {
+  string module_id = 1; // Resolved module ID
+  string grpc_endpoint = 2; // gRPC endpoint (e.g. "warden-service:9300")
+  string server_name = 3; // TLS server name for mTLS verification
+  ModuleHealth health = 4; // Current health status
 }

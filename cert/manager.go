@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/tx7do/kratos-bootstrap/bootstrap"
@@ -19,23 +20,32 @@ type CertManager struct {
 }
 
 // NewCertManager creates a new certificate manager parameterized by env var prefix.
-// It reads {PREFIX}_CA_CERT_PATH, {PREFIX}_SERVER_CERT_PATH, {PREFIX}_SERVER_KEY_PATH
-// and falls back to /app/certs/ca/ca.crt, /app/certs/server/server.{crt,key}.
+// It reads {PREFIX}_CA_CERT_PATH, {PREFIX}_SERVER_CERT_PATH, {PREFIX}_SERVER_KEY_PATH.
+// Falls back to convention-based paths: {CERTS_DIR}/ca/ca.crt,
+// {CERTS_DIR}/{module}-server/server.{crt,key} where module is derived from the prefix.
 func NewCertManager(ctx *bootstrap.Context, envPrefix string) (*CertManager, error) {
 	logModule := fmt.Sprintf("%s/cert", envPrefix)
 	l := ctx.NewLoggerHelper(logModule)
 
+	certsDir := os.Getenv("CERTS_DIR")
+	if certsDir == "" {
+		certsDir = "/app/certs"
+	}
+
+	// Derive module name from prefix for convention paths (e.g. "WARDEN" -> "warden")
+	moduleID := strings.ToLower(envPrefix)
+
 	caCertPath := os.Getenv(envPrefix + "_CA_CERT_PATH")
 	if caCertPath == "" {
-		caCertPath = "/app/certs/ca/ca.crt"
+		caCertPath = certsDir + "/ca/ca.crt"
 	}
 	serverCertPath := os.Getenv(envPrefix + "_SERVER_CERT_PATH")
 	if serverCertPath == "" {
-		serverCertPath = "/app/certs/server/server.crt"
+		serverCertPath = certsDir + "/" + moduleID + "-server/server.crt"
 	}
 	serverKeyPath := os.Getenv(envPrefix + "_SERVER_KEY_PATH")
 	if serverKeyPath == "" {
-		serverKeyPath = "/app/certs/server/server.key"
+		serverKeyPath = certsDir + "/" + moduleID + "-server/server.key"
 	}
 
 	cm := &CertManager{

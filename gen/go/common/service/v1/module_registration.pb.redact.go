@@ -96,6 +96,17 @@ func (s *redactedModuleRegistrationServiceServer) GetModule(ctx context.Context,
 	return res, err
 }
 
+// ResolveModule is the redacted wrapper for the actual ModuleRegistrationServiceServer.ResolveModule method
+// Unary RPC
+func (s *redactedModuleRegistrationServiceServer) ResolveModule(ctx context.Context, in *ResolveModuleRequest) (*ResolveModuleResponse, error) {
+	res, err := s.srv.ResolveModule(ctx, in)
+	if !s.bypass.CheckInternal(ctx) {
+		// Apply redaction to the response
+		redact.Apply(res)
+	}
+	return res, err
+}
+
 // Redact method implementation for RegisterModuleRequest
 func (x *RegisterModuleRequest) Redact() string {
 	if x == nil {
@@ -115,6 +126,8 @@ func (x *RegisterModuleRequest) Redact() string {
 	// Safe field: FrontendEntryUrl
 
 	// Safe field: HttpEndpoint
+
+	// Safe field: ServerName
 
 	// Redacting field: OpenapiSpec
 	x.OpenapiSpec = []byte(`[OPENAPI_SPEC]`)
@@ -268,10 +281,38 @@ func (x *Module) Redact() string {
 
 	// Safe field: HttpEndpoint
 
+	// Safe field: ServerName
+
 	// Safe field: MenuCount
 
 	// Safe field: ApiCount
 
 	// Safe field: RouteCount
+	return x.String()
+}
+
+// Redact method implementation for ResolveModuleRequest
+func (x *ResolveModuleRequest) Redact() string {
+	if x == nil {
+		return ""
+	}
+
+	// Safe field: ModuleId
+	return x.String()
+}
+
+// Redact method implementation for ResolveModuleResponse
+func (x *ResolveModuleResponse) Redact() string {
+	if x == nil {
+		return ""
+	}
+
+	// Safe field: ModuleId
+
+	// Safe field: GrpcEndpoint
+
+	// Safe field: ServerName
+
+	// Safe field: Health
 	return x.String()
 }

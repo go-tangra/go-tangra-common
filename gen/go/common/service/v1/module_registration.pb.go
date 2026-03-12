@@ -141,6 +141,9 @@ type RegisterModuleRequest struct {
 	GrpcEndpoint     string `protobuf:"bytes,5,opt,name=grpc_endpoint,json=grpcEndpoint,proto3" json:"grpc_endpoint,omitempty"`               // gRPC endpoint: "echo-service:9500"
 	FrontendEntryUrl string `protobuf:"bytes,6,opt,name=frontend_entry_url,json=frontendEntryUrl,proto3" json:"frontend_entry_url,omitempty"` // Module Federation remoteEntry.js URL
 	HttpEndpoint     string `protobuf:"bytes,7,opt,name=http_endpoint,json=httpEndpoint,proto3" json:"http_endpoint,omitempty"`               // HTTP server endpoint for frontend assets (e.g., "ipam-service:9401")
+	// TLS server name for mTLS verification (e.g. "warden-service").
+	// If empty, defaults to "{module_id}-service".
+	ServerName string `protobuf:"bytes,8,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
 	// API definition (OpenAPI 3.0 YAML for routing - no menu extensions needed)
 	OpenapiSpec []byte `protobuf:"bytes,10,opt,name=openapi_spec,json=openapiSpec,proto3" json:"openapi_spec,omitempty"`
 	// Proto descriptor for gRPC transcoding (compiled FileDescriptorSet)
@@ -228,6 +231,13 @@ func (x *RegisterModuleRequest) GetFrontendEntryUrl() string {
 func (x *RegisterModuleRequest) GetHttpEndpoint() string {
 	if x != nil {
 		return x.HttpEndpoint
+	}
+	return ""
+}
+
+func (x *RegisterModuleRequest) GetServerName() string {
+	if x != nil {
+		return x.ServerName
 	}
 	return ""
 }
@@ -752,6 +762,7 @@ type Module struct {
 	RegistrationId   string                 `protobuf:"bytes,10,opt,name=registration_id,json=registrationId,proto3" json:"registration_id,omitempty"`
 	FrontendEntryUrl string                 `protobuf:"bytes,11,opt,name=frontend_entry_url,json=frontendEntryUrl,proto3" json:"frontend_entry_url,omitempty"` // Module Federation remoteEntry.js URL
 	HttpEndpoint     string                 `protobuf:"bytes,12,opt,name=http_endpoint,json=httpEndpoint,proto3" json:"http_endpoint,omitempty"`               // HTTP server endpoint for frontend assets
+	ServerName       string                 `protobuf:"bytes,13,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`                     // TLS server name for mTLS verification
 	// Statistics
 	MenuCount     int32 `protobuf:"varint,20,opt,name=menu_count,json=menuCount,proto3" json:"menu_count,omitempty"`
 	ApiCount      int32 `protobuf:"varint,21,opt,name=api_count,json=apiCount,proto3" json:"api_count,omitempty"`
@@ -874,6 +885,13 @@ func (x *Module) GetHttpEndpoint() string {
 	return ""
 }
 
+func (x *Module) GetServerName() string {
+	if x != nil {
+		return x.ServerName
+	}
+	return ""
+}
+
 func (x *Module) GetMenuCount() int32 {
 	if x != nil {
 		return x.MenuCount
@@ -895,11 +913,125 @@ func (x *Module) GetRouteCount() int32 {
 	return 0
 }
 
+// ResolveModuleRequest is used by modules to discover other modules' connection info.
+type ResolveModuleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModuleId      string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"` // Target module to resolve (e.g. "warden", "paperless")
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveModuleRequest) Reset() {
+	*x = ResolveModuleRequest{}
+	mi := &file_common_service_v1_module_registration_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveModuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveModuleRequest) ProtoMessage() {}
+
+func (x *ResolveModuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_common_service_v1_module_registration_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveModuleRequest.ProtoReflect.Descriptor instead.
+func (*ResolveModuleRequest) Descriptor() ([]byte, []int) {
+	return file_common_service_v1_module_registration_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ResolveModuleRequest) GetModuleId() string {
+	if x != nil {
+		return x.ModuleId
+	}
+	return ""
+}
+
+// ResolveModuleResponse returns connection info for the resolved module.
+type ResolveModuleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModuleId      string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`                  // Resolved module ID
+	GrpcEndpoint  string                 `protobuf:"bytes,2,opt,name=grpc_endpoint,json=grpcEndpoint,proto3" json:"grpc_endpoint,omitempty"`      // gRPC endpoint (e.g. "warden-service:9300")
+	ServerName    string                 `protobuf:"bytes,3,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`            // TLS server name for mTLS verification
+	Health        ModuleHealth           `protobuf:"varint,4,opt,name=health,proto3,enum=common.service.v1.ModuleHealth" json:"health,omitempty"` // Current health status
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveModuleResponse) Reset() {
+	*x = ResolveModuleResponse{}
+	mi := &file_common_service_v1_module_registration_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveModuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveModuleResponse) ProtoMessage() {}
+
+func (x *ResolveModuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_common_service_v1_module_registration_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveModuleResponse.ProtoReflect.Descriptor instead.
+func (*ResolveModuleResponse) Descriptor() ([]byte, []int) {
+	return file_common_service_v1_module_registration_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ResolveModuleResponse) GetModuleId() string {
+	if x != nil {
+		return x.ModuleId
+	}
+	return ""
+}
+
+func (x *ResolveModuleResponse) GetGrpcEndpoint() string {
+	if x != nil {
+		return x.GrpcEndpoint
+	}
+	return ""
+}
+
+func (x *ResolveModuleResponse) GetServerName() string {
+	if x != nil {
+		return x.ServerName
+	}
+	return ""
+}
+
+func (x *ResolveModuleResponse) GetHealth() ModuleHealth {
+	if x != nil {
+		return x.Health
+	}
+	return ModuleHealth_MODULE_HEALTH_UNSPECIFIED
+}
+
 var File_common_service_v1_module_registration_proto protoreflect.FileDescriptor
 
 const file_common_service_v1_module_registration_proto_rawDesc = "" +
 	"\n" +
-	"+common/service/v1/module_registration.proto\x12\x11common.service.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16redact/v3/redact.proto\"\xee\x03\n" +
+	"+common/service/v1/module_registration.proto\x12\x11common.service.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16redact/v3/redact.proto\"\x8f\x04\n" +
 	"\x15RegisterModuleRequest\x12\x1b\n" +
 	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\x12\x1f\n" +
 	"\vmodule_name\x18\x02 \x01(\tR\n" +
@@ -908,7 +1040,9 @@ const file_common_service_v1_module_registration_proto_rawDesc = "" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12#\n" +
 	"\rgrpc_endpoint\x18\x05 \x01(\tR\fgrpcEndpoint\x12,\n" +
 	"\x12frontend_entry_url\x18\x06 \x01(\tR\x10frontendEntryUrl\x12#\n" +
-	"\rhttp_endpoint\x18\a \x01(\tR\fhttpEndpoint\x128\n" +
+	"\rhttp_endpoint\x18\a \x01(\tR\fhttpEndpoint\x12\x1f\n" +
+	"\vserver_name\x18\b \x01(\tR\n" +
+	"serverName\x128\n" +
 	"\fopenapi_spec\x18\n" +
 	" \x01(\fB\x15ڶ\x1a\x11\x82\x01\x0e[OPENAPI_SPEC]R\vopenapiSpec\x12D\n" +
 	"\x10proto_descriptor\x18\v \x01(\fB\x19ڶ\x1a\x15\x82\x01\x12[PROTO_DESCRIPTOR]R\x0fprotoDescriptor\x122\n" +
@@ -946,7 +1080,7 @@ const file_common_service_v1_module_registration_proto_rawDesc = "" +
 	"\x10GetModuleRequest\x12\x1b\n" +
 	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\"F\n" +
 	"\x11GetModuleResponse\x121\n" +
-	"\x06module\x18\x01 \x01(\v2\x19.common.service.v1.ModuleR\x06module\"\xf6\x04\n" +
+	"\x06module\x18\x01 \x01(\v2\x19.common.service.v1.ModuleR\x06module\"\x97\x05\n" +
 	"\x06Module\x12\x1b\n" +
 	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\x12\x1f\n" +
 	"\vmodule_name\x18\x02 \x01(\tR\n" +
@@ -961,12 +1095,22 @@ const file_common_service_v1_module_registration_proto_rawDesc = "" +
 	"\x0fregistration_id\x18\n" +
 	" \x01(\tR\x0eregistrationId\x12,\n" +
 	"\x12frontend_entry_url\x18\v \x01(\tR\x10frontendEntryUrl\x12#\n" +
-	"\rhttp_endpoint\x18\f \x01(\tR\fhttpEndpoint\x12\x1d\n" +
+	"\rhttp_endpoint\x18\f \x01(\tR\fhttpEndpoint\x12\x1f\n" +
+	"\vserver_name\x18\r \x01(\tR\n" +
+	"serverName\x12\x1d\n" +
 	"\n" +
 	"menu_count\x18\x14 \x01(\x05R\tmenuCount\x12\x1b\n" +
 	"\tapi_count\x18\x15 \x01(\x05R\bapiCount\x12\x1f\n" +
 	"\vroute_count\x18\x16 \x01(\x05R\n" +
-	"routeCount*|\n" +
+	"routeCount\"3\n" +
+	"\x14ResolveModuleRequest\x12\x1b\n" +
+	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\"\xb3\x01\n" +
+	"\x15ResolveModuleResponse\x12\x1b\n" +
+	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\x12#\n" +
+	"\rgrpc_endpoint\x18\x02 \x01(\tR\fgrpcEndpoint\x12\x1f\n" +
+	"\vserver_name\x18\x03 \x01(\tR\n" +
+	"serverName\x127\n" +
+	"\x06health\x18\x04 \x01(\x0e2\x1f.common.service.v1.ModuleHealthR\x06health*|\n" +
 	"\fModuleStatus\x12\x1d\n" +
 	"\x19MODULE_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14MODULE_STATUS_ACTIVE\x10\x01\x12\x1a\n" +
@@ -976,13 +1120,14 @@ const file_common_service_v1_module_registration_proto_rawDesc = "" +
 	"\x19MODULE_HEALTH_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15MODULE_HEALTH_HEALTHY\x10\x01\x12\x1a\n" +
 	"\x16MODULE_HEALTH_DEGRADED\x10\x02\x12\x1b\n" +
-	"\x17MODULE_HEALTH_UNHEALTHY\x10\x032\xfd\x03\n" +
+	"\x17MODULE_HEALTH_UNHEALTHY\x10\x032\xe1\x04\n" +
 	"\x19ModuleRegistrationService\x12e\n" +
 	"\x0eRegisterModule\x12(.common.service.v1.RegisterModuleRequest\x1a).common.service.v1.RegisterModuleResponse\x12k\n" +
 	"\x10UnregisterModule\x12*.common.service.v1.UnregisterModuleRequest\x1a+.common.service.v1.UnregisterModuleResponse\x12V\n" +
 	"\tHeartbeat\x12#.common.service.v1.HeartbeatRequest\x1a$.common.service.v1.HeartbeatResponse\x12\\\n" +
 	"\vListModules\x12%.common.service.v1.ListModulesRequest\x1a&.common.service.v1.ListModulesResponse\x12V\n" +
-	"\tGetModule\x12#.common.service.v1.GetModuleRequest\x1a$.common.service.v1.GetModuleResponseB\xdf\x01\n" +
+	"\tGetModule\x12#.common.service.v1.GetModuleRequest\x1a$.common.service.v1.GetModuleResponse\x12b\n" +
+	"\rResolveModule\x12'.common.service.v1.ResolveModuleRequest\x1a(.common.service.v1.ResolveModuleResponseB\xdf\x01\n" +
 	"\x15com.common.service.v1B\x17ModuleRegistrationProtoP\x01ZGgithub.com/go-tangra/go-tangra-common/gen/go/common/service/v1;commonpb\xa2\x02\x03CSX\xaa\x02\x11Common.Service.V1\xca\x02\x11Common\\Service\\V1\xe2\x02\x1dCommon\\Service\\V1\\GPBMetadata\xea\x02\x13Common::Service::V1b\x06proto3"
 
 var (
@@ -998,7 +1143,7 @@ func file_common_service_v1_module_registration_proto_rawDescGZIP() []byte {
 }
 
 var file_common_service_v1_module_registration_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_common_service_v1_module_registration_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_common_service_v1_module_registration_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_common_service_v1_module_registration_proto_goTypes = []any{
 	(ModuleStatus)(0),                // 0: common.service.v1.ModuleStatus
 	(ModuleHealth)(0),                // 1: common.service.v1.ModuleHealth
@@ -1013,35 +1158,40 @@ var file_common_service_v1_module_registration_proto_goTypes = []any{
 	(*GetModuleRequest)(nil),         // 10: common.service.v1.GetModuleRequest
 	(*GetModuleResponse)(nil),        // 11: common.service.v1.GetModuleResponse
 	(*Module)(nil),                   // 12: common.service.v1.Module
-	(*timestamppb.Timestamp)(nil),    // 13: google.protobuf.Timestamp
+	(*ResolveModuleRequest)(nil),     // 13: common.service.v1.ResolveModuleRequest
+	(*ResolveModuleResponse)(nil),    // 14: common.service.v1.ResolveModuleResponse
+	(*timestamppb.Timestamp)(nil),    // 15: google.protobuf.Timestamp
 }
 var file_common_service_v1_module_registration_proto_depIdxs = []int32{
 	0,  // 0: common.service.v1.RegisterModuleResponse.status:type_name -> common.service.v1.ModuleStatus
 	1,  // 1: common.service.v1.HeartbeatRequest.health:type_name -> common.service.v1.ModuleHealth
-	13, // 2: common.service.v1.HeartbeatResponse.next_heartbeat:type_name -> google.protobuf.Timestamp
+	15, // 2: common.service.v1.HeartbeatResponse.next_heartbeat:type_name -> google.protobuf.Timestamp
 	0,  // 3: common.service.v1.ListModulesRequest.status:type_name -> common.service.v1.ModuleStatus
 	1,  // 4: common.service.v1.ListModulesRequest.health:type_name -> common.service.v1.ModuleHealth
 	12, // 5: common.service.v1.ListModulesResponse.modules:type_name -> common.service.v1.Module
 	12, // 6: common.service.v1.GetModuleResponse.module:type_name -> common.service.v1.Module
 	0,  // 7: common.service.v1.Module.status:type_name -> common.service.v1.ModuleStatus
 	1,  // 8: common.service.v1.Module.health:type_name -> common.service.v1.ModuleHealth
-	13, // 9: common.service.v1.Module.registered_at:type_name -> google.protobuf.Timestamp
-	13, // 10: common.service.v1.Module.last_heartbeat:type_name -> google.protobuf.Timestamp
-	2,  // 11: common.service.v1.ModuleRegistrationService.RegisterModule:input_type -> common.service.v1.RegisterModuleRequest
-	4,  // 12: common.service.v1.ModuleRegistrationService.UnregisterModule:input_type -> common.service.v1.UnregisterModuleRequest
-	6,  // 13: common.service.v1.ModuleRegistrationService.Heartbeat:input_type -> common.service.v1.HeartbeatRequest
-	8,  // 14: common.service.v1.ModuleRegistrationService.ListModules:input_type -> common.service.v1.ListModulesRequest
-	10, // 15: common.service.v1.ModuleRegistrationService.GetModule:input_type -> common.service.v1.GetModuleRequest
-	3,  // 16: common.service.v1.ModuleRegistrationService.RegisterModule:output_type -> common.service.v1.RegisterModuleResponse
-	5,  // 17: common.service.v1.ModuleRegistrationService.UnregisterModule:output_type -> common.service.v1.UnregisterModuleResponse
-	7,  // 18: common.service.v1.ModuleRegistrationService.Heartbeat:output_type -> common.service.v1.HeartbeatResponse
-	9,  // 19: common.service.v1.ModuleRegistrationService.ListModules:output_type -> common.service.v1.ListModulesResponse
-	11, // 20: common.service.v1.ModuleRegistrationService.GetModule:output_type -> common.service.v1.GetModuleResponse
-	16, // [16:21] is the sub-list for method output_type
-	11, // [11:16] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	15, // 9: common.service.v1.Module.registered_at:type_name -> google.protobuf.Timestamp
+	15, // 10: common.service.v1.Module.last_heartbeat:type_name -> google.protobuf.Timestamp
+	1,  // 11: common.service.v1.ResolveModuleResponse.health:type_name -> common.service.v1.ModuleHealth
+	2,  // 12: common.service.v1.ModuleRegistrationService.RegisterModule:input_type -> common.service.v1.RegisterModuleRequest
+	4,  // 13: common.service.v1.ModuleRegistrationService.UnregisterModule:input_type -> common.service.v1.UnregisterModuleRequest
+	6,  // 14: common.service.v1.ModuleRegistrationService.Heartbeat:input_type -> common.service.v1.HeartbeatRequest
+	8,  // 15: common.service.v1.ModuleRegistrationService.ListModules:input_type -> common.service.v1.ListModulesRequest
+	10, // 16: common.service.v1.ModuleRegistrationService.GetModule:input_type -> common.service.v1.GetModuleRequest
+	13, // 17: common.service.v1.ModuleRegistrationService.ResolveModule:input_type -> common.service.v1.ResolveModuleRequest
+	3,  // 18: common.service.v1.ModuleRegistrationService.RegisterModule:output_type -> common.service.v1.RegisterModuleResponse
+	5,  // 19: common.service.v1.ModuleRegistrationService.UnregisterModule:output_type -> common.service.v1.UnregisterModuleResponse
+	7,  // 20: common.service.v1.ModuleRegistrationService.Heartbeat:output_type -> common.service.v1.HeartbeatResponse
+	9,  // 21: common.service.v1.ModuleRegistrationService.ListModules:output_type -> common.service.v1.ListModulesResponse
+	11, // 22: common.service.v1.ModuleRegistrationService.GetModule:output_type -> common.service.v1.GetModuleResponse
+	14, // 23: common.service.v1.ModuleRegistrationService.ResolveModule:output_type -> common.service.v1.ResolveModuleResponse
+	18, // [18:24] is the sub-list for method output_type
+	12, // [12:18] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_common_service_v1_module_registration_proto_init() }
@@ -1056,7 +1206,7 @@ func file_common_service_v1_module_registration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_service_v1_module_registration_proto_rawDesc), len(file_common_service_v1_module_registration_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -56,6 +56,29 @@ func StartRegistration(ctx *bootstrap.Context, logger log.Logger, cfg *Config) *
 	return h
 }
 
+// StartRegistrationWithClient begins the registration lifecycle using a pre-created Client.
+// Use this when the Client was created earlier (e.g. during Wire DI for ModuleDialer).
+func StartRegistrationWithClient(logger log.Logger, client *Client) *RegistrationHelper {
+	h := &RegistrationHelper{
+		client: client,
+		logger: log.NewHelper(log.With(logger, "module", "registration/lifecycle")),
+	}
+
+	go func() {
+		time.Sleep(3 * time.Second)
+
+		regCtx := context.Background()
+		if err := client.Register(regCtx); err != nil {
+			h.logger.Errorf("Failed to register with admin gateway: %v", err)
+			return
+		}
+
+		go client.StartHeartbeat(regCtx)
+	}()
+
+	return h
+}
+
 // Stop unregisters from admin gateway and closes the connection.
 func (h *RegistrationHelper) Stop() {
 	if h == nil || h.client == nil {
