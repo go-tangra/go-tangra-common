@@ -91,6 +91,7 @@ type AdminUser struct {
 	PositionNames []string               `protobuf:"bytes,11,rep,name=position_names,json=positionNames,proto3" json:"position_names,omitempty"`
 	Username      string                 `protobuf:"bytes,20,opt,name=username,proto3" json:"username,omitempty"`
 	Realname      string                 `protobuf:"bytes,22,opt,name=realname,proto3" json:"realname,omitempty"`
+	Avatar        *string                `protobuf:"bytes,23,opt,name=avatar,proto3,oneof" json:"avatar,omitempty"`
 	Email         string                 `protobuf:"bytes,24,opt,name=email,proto3" json:"email,omitempty"`
 	Status        *AdminUser_Status      `protobuf:"varint,52,opt,name=status,proto3,enum=common.admin_stub.v1.AdminUser_Status,oneof" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -158,6 +159,13 @@ func (x *AdminUser) GetUsername() string {
 func (x *AdminUser) GetRealname() string {
 	if x != nil {
 		return x.Realname
+	}
+	return ""
+}
+
+func (x *AdminUser) GetAvatar() string {
+	if x != nil && x.Avatar != nil {
+		return *x.Avatar
 	}
 	return ""
 }
@@ -232,15 +240,16 @@ var File_common_admin_stub_v1_user_proto protoreflect.FileDescriptor
 
 const file_common_admin_stub_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x1fcommon/admin_stub/v1/user.proto\x12\x14common.admin_stub.v1\"\xdc\x02\n" +
+	"\x1fcommon/admin_stub/v1/user.proto\x12\x14common.admin_stub.v1\"\x84\x03\n" +
 	"\tAdminUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12$\n" +
 	"\x0eorg_unit_names\x18\a \x03(\tR\forgUnitNames\x12%\n" +
 	"\x0eposition_names\x18\v \x03(\tR\rpositionNames\x12\x1a\n" +
 	"\busername\x18\x14 \x01(\tR\busername\x12\x1a\n" +
-	"\brealname\x18\x16 \x01(\tR\brealname\x12\x14\n" +
+	"\brealname\x18\x16 \x01(\tR\brealname\x12\x1b\n" +
+	"\x06avatar\x18\x17 \x01(\tH\x00R\x06avatar\x88\x01\x01\x12\x14\n" +
 	"\x05email\x18\x18 \x01(\tR\x05email\x12C\n" +
-	"\x06status\x184 \x01(\x0e2&.common.admin_stub.v1.AdminUser.StatusH\x00R\x06status\x88\x01\x01\"T\n" +
+	"\x06status\x184 \x01(\x0e2&.common.admin_stub.v1.AdminUser.StatusH\x01R\x06status\x88\x01\x01\"T\n" +
 	"\x06Status\x12\f\n" +
 	"\bDISABLED\x10\x00\x12\n" +
 	"\n" +
@@ -251,6 +260,7 @@ const file_common_admin_stub_v1_user_proto_rawDesc = "" +
 	"\aEXPIRED\x10\x04\x12\n" +
 	"\n" +
 	"\x06CLOSED\x10\tB\t\n" +
+	"\a_avatarB\t\n" +
 	"\a_status\"e\n" +
 	"\x16ListAdminUsersResponse\x125\n" +
 	"\x05items\x18\x01 \x03(\v2\x1f.common.admin_stub.v1.AdminUserR\x05items\x12\x14\n" +

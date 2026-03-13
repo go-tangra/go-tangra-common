@@ -36,6 +36,8 @@ func (x *AdminUser) Redact() string {
 
 	// Safe field: Realname
 
+	// Safe field: Avatar
+
 	// Safe field: Email
 
 	// Safe field: Status

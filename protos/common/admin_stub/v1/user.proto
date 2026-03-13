@@ -23,6 +23,7 @@ message AdminUser {
   repeated string position_names = 11;
   string username = 20;
   string realname = 22;
+  optional string avatar = 23;
   string email = 24;
   optional Status status = 52;
 }
