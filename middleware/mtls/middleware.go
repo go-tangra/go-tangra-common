@@ -93,16 +93,11 @@ func MTLSMiddleware(logger log.Logger, opts ...Option) middleware.Middleware {
 					return handler(ctx, req)
 				}
 
-				l.Debugf("Validating client certificate for operation: %s", operation)
-
 				// Validate client certificate for protected endpoints
 				if clientInfo == nil || !clientInfo.IsAuthenticated {
 					l.Error("Client certificate validation failed: no valid certificate")
 					return nil, status.Error(codes.Unauthenticated, "client certificate required for this endpoint")
 				}
-
-				l.Debugf("Client certificate validated successfully for operation: %s (CN: %s)", operation, clientInfo.CommonName)
-
 				// Add client info to context
 				ctx = context.WithValue(ctx, ClientInfoKey, clientInfo)
 			}

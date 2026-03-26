@@ -18,8 +18,6 @@ func LoggingMiddleware(logger *log.Helper) Middleware {
 			err := next.Handle(ctx, event)
 			if err != nil {
 				logger.Errorf("Error handling event %s: %v", event.ID, err)
-			} else {
-				logger.Debugf("Successfully handled event: %s", event.ID)
 			}
 			return err
 		})
