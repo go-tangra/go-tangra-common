@@ -167,8 +167,6 @@ func extractClientInfo(p *peer.Peer, l *log.Helper, opts *Options) *ClientInfo {
 
 	// Mark as authenticated if all validations pass
 	clientInfo.IsAuthenticated = true
-	l.Debugf("Client certificate validation successful")
-
 	return clientInfo
 }
 
