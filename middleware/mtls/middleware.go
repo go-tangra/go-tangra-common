@@ -149,11 +149,6 @@ func extractClientInfo(p *peer.Peer, l *log.Helper, opts *Options) *ClientInfo {
 		IsAuthenticated: false, // Will be set to true after validation
 	}
 
-	// Log certificate information for debugging
-	l.Debugf("Client certificate Subject: %s", clientInfo.Subject)
-	l.Debugf("Client certificate Issuer: %s", clientInfo.Issuer)
-	l.Debugf("Client certificate Serial: %s", clientInfo.SerialNumber)
-
 	// Validate certificate
 	if err := validateCertificateValidity(clientCert); err != nil {
 		l.Debugf("Certificate validity check failed: %v", err)
