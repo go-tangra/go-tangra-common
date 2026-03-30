@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -78,7 +79,7 @@ func (dr *DynamicRouter) registerModuleHandler(module *ModuleInfo) {
 		return
 	}
 
-	handler := NewModuleHandler(module.ModuleID, dr.transcoder, dr.log)
+	handler := newModuleHandler(module.ModuleID, dr.transcoder, dr.log)
 	dr.handlers.Store(module.ModuleID, handler)
 
 	dr.log.Infof("Hot-registered dynamic handler for module: %s at endpoint %s",
@@ -119,36 +120,41 @@ func (dr *DynamicRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Authenticate: extract Bearer token and set auth claims in request context.
 	// The Kratos middleware chain does not cover HandlePrefix routes, so we must
 	// authenticate here to ensure the transcoder can inject user metadata.
-	r = dr.authenticateRequest(r)
-
-	val, ok := dr.handlers.Load(moduleID)
+	authedReq, ok := dr.authenticateRequest(r)
 	if !ok {
+		dr.writeError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	val, loaded := dr.handlers.Load(moduleID)
+	if !loaded {
 		dr.writeError(w, http.StatusNotFound, "module not found: %s", moduleID)
 		return
 	}
 
-	handler := val.(*ModuleHandler)
-	handler.ServeHTTP(w, r, modulePath)
+	handler := val.(*moduleHandler)
+	handler.ServeHTTP(w, authedReq, modulePath)
 }
 
 // authenticateRequest parses the Bearer token from the Authorization header,
-// validates it, and returns a new request with auth claims set in the context.
-func (dr *DynamicRouter) authenticateRequest(r *http.Request) *http.Request {
+// validates it, and returns a new request with auth claims in context.
+// Returns (request, false) if authentication fails.
+func (dr *DynamicRouter) authenticateRequest(r *http.Request) (*http.Request, bool) {
 	authHeader := r.Header.Get("Authorization")
 	if len(authHeader) <= 7 || !strings.EqualFold(authHeader[:7], "bearer ") {
 		dr.log.Warnf("No Bearer token in Authorization header (header length=%d)", len(authHeader))
-		return r
+		return r, false
 	}
 
 	token := authHeader[7:]
 	claims, err := dr.authenticator.AuthenticateToken(token)
 	if err != nil {
 		dr.log.Warnf("Failed to authenticate token for module request: %v", err)
-		return r
+		return r, false
 	}
 
 	ctx := authnEngine.ContextWithAuthClaims(r.Context(), claims)
-	return r.WithContext(ctx)
+	return r.WithContext(ctx), true
 }
 
 // extractModuleFromPath extracts the module ID and remaining path.
@@ -174,11 +180,14 @@ func (dr *DynamicRouter) extractModuleFromPath(path string) (moduleID, modulePat
 
 // writeError writes a JSON error response.
 func (dr *DynamicRouter) writeError(w http.ResponseWriter, code int, format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
-
+	httpErr := transcoder.HTTPError{
+		Code:    code,
+		Message: fmt.Sprintf(format, args...),
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	if _, err := w.Write([]byte(fmt.Sprintf(`{"code":%d,"message":"%s"}`, code, msg))); err != nil {
+	jsonBytes, _ := json.Marshal(httpErr)
+	if _, err := w.Write(jsonBytes); err != nil {
 		dr.log.Warnf("Failed to write HTTP error response: %v", err)
 	}
 }
@@ -186,7 +195,7 @@ func (dr *DynamicRouter) writeError(w http.ResponseWriter, code int, format stri
 // ListRegisteredModules returns a list of all modules with registered handlers.
 func (dr *DynamicRouter) ListRegisteredModules() []string {
 	var modules []string
-	dr.handlers.Range(func(key, value interface{}) bool {
+	dr.handlers.Range(func(key, value any) bool {
 		modules = append(modules, key.(string))
 		return true
 	})

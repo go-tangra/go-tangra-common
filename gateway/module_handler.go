@@ -8,20 +8,20 @@ import (
 	"github.com/go-tangra/go-tangra-common/gateway/transcoder"
 )
 
-// ModuleHandler handles HTTP requests for a specific module.
-type ModuleHandler struct {
+// moduleHandler handles HTTP requests for a specific module.
+type moduleHandler struct {
 	moduleID   string
 	transcoder *transcoder.Transcoder
 	log        *log.Helper
 }
 
-// NewModuleHandler creates a new ModuleHandler.
-func NewModuleHandler(
+// newModuleHandler creates a new moduleHandler.
+func newModuleHandler(
 	moduleID string,
 	tc *transcoder.Transcoder,
 	logger *log.Helper,
-) *ModuleHandler {
-	return &ModuleHandler{
+) *moduleHandler {
+	return &moduleHandler{
 		moduleID:   moduleID,
 		transcoder: tc,
 		log:        logger,
@@ -30,7 +30,7 @@ func NewModuleHandler(
 
 // ServeHTTP handles an HTTP request for this module.
 // modulePath is the path relative to the module prefix (e.g., /v1/messages).
-func (h *ModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, modulePath string) {
+func (h *moduleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, modulePath string) {
 	h.log.Debugf("Module %s handling %s %s", h.moduleID, r.Method, modulePath)
 
 	h.transcoder.Handle(
@@ -40,9 +40,4 @@ func (h *ModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, module
 		h.moduleID,
 		modulePath,
 	)
-}
-
-// GetModuleID returns the module ID for this handler.
-func (h *ModuleHandler) GetModuleID() string {
-	return h.moduleID
 }

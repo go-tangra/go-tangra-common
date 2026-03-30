@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -142,6 +144,7 @@ func (t *Transcoder) RegisterModule(moduleID, endpoint string, protoDescriptor [
 }
 
 // UnregisterModule removes a module and closes its connection.
+// The connection mutex is held during close to prevent races with in-flight Handle calls.
 func (t *Transcoder) UnregisterModule(moduleID string) error {
 	val, ok := t.connections.LoadAndDelete(moduleID)
 	if !ok {
@@ -149,6 +152,8 @@ func (t *Transcoder) UnregisterModule(moduleID string) error {
 	}
 
 	moduleConn := val.(*ModuleConnection)
+	moduleConn.mu.Lock()
+	defer moduleConn.mu.Unlock()
 	if moduleConn.Conn != nil {
 		if err := moduleConn.Conn.Close(); err != nil {
 			t.log.Warnf("Error closing connection for module %s: %v", moduleID, err)
@@ -484,7 +489,7 @@ func (t *Transcoder) loadTLSFromPaths(moduleID, caCertPath, clientCertPath, clie
 }
 
 // writeError writes an error response.
-func (t *Transcoder) writeError(w http.ResponseWriter, code int, format string, args ...interface{}) {
+func (t *Transcoder) writeError(w http.ResponseWriter, code int, format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	t.log.Warnf("Transcoder error: %s", msg)
 
@@ -539,7 +544,7 @@ func (t *Transcoder) writeAuditLog(
 		Request:     r,
 	}
 
-	if err := t.auditWriter.WriteAuditLog(context.Background(), entry); err != nil {
+	if err := t.auditWriter.WriteAuditLog(r.Context(), entry); err != nil {
 		t.log.Warnf("Failed to write API audit log for module %s: %v", moduleID, err)
 	}
 }
@@ -625,7 +630,7 @@ func getRequestID(r *http.Request) string {
 // ListModules returns a list of all registered modules.
 func (t *Transcoder) ListModules() []string {
 	var modules []string
-	t.connections.Range(func(key, value interface{}) bool {
+	t.connections.Range(func(key, value any) bool {
 		modules = append(modules, key.(string))
 		return true
 	})
@@ -658,7 +663,7 @@ func (t *Transcoder) Healthcheck(ctx context.Context, moduleID string) error {
 	}
 
 	state := moduleConn.Conn.GetState()
-	if state.String() == "TRANSIENT_FAILURE" || state.String() == "SHUTDOWN" {
+	if state == connectivity.TransientFailure || state == connectivity.Shutdown {
 		return fmt.Errorf("connection in unhealthy state: %s", state)
 	}
 
@@ -668,7 +673,7 @@ func (t *Transcoder) Healthcheck(ctx context.Context, moduleID string) error {
 // Close closes all module connections.
 func (t *Transcoder) Close() error {
 	var errs []error
-	t.connections.Range(func(key, value interface{}) bool {
+	t.connections.Range(func(key, value any) bool {
 		moduleConn := value.(*ModuleConnection)
 		if moduleConn.Conn != nil {
 			if err := moduleConn.Conn.Close(); err != nil {
@@ -679,7 +684,7 @@ func (t *Transcoder) Close() error {
 	})
 
 	if len(errs) > 0 {
-		return fmt.Errorf("errors closing connections: %v", errs)
+		return errors.Join(errs...)
 	}
 	return nil
 }
@@ -687,7 +692,7 @@ func (t *Transcoder) Close() error {
 // ListRoutes returns all registered routes across all modules.
 func (t *Transcoder) ListRoutes() []RouteInfo {
 	var routes []RouteInfo
-	t.connections.Range(func(key, value interface{}) bool {
+	t.connections.Range(func(key, value any) bool {
 		moduleID := key.(string)
 		moduleConn := value.(*ModuleConnection)
 
