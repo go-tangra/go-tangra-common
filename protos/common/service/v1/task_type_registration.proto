@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package common.service.v1;
+
+import "google/protobuf/empty.proto";
+
+// TaskTypeRegistrationService allows modules to register their executable
+// task types with the scheduler. Modules call this on startup.
+// Implemented by the scheduler module, called by all other modules.
+service TaskTypeRegistrationService {
+  // RegisterTaskTypes declares which task types a module can execute.
+  rpc RegisterTaskTypes (RegisterTaskTypesRequest) returns (RegisterTaskTypesResponse);
+
+  // UnregisterTaskTypes removes all task types for a module.
+  rpc UnregisterTaskTypes (UnregisterTaskTypesRequest) returns (google.protobuf.Empty);
+}
+
+// TaskTypeDescriptor describes a single executable task type.
+message TaskTypeDescriptor {
+  // Globally unique task type name. Convention: "{module_id}:{action}"
+  string task_type = 1;
+  string display_name = 2;
+  string description = 3;
+  string payload_schema = 4;
+  string default_cron = 5;
+  int32 default_max_retry = 6;
+}
+
+message RegisterTaskTypesRequest {
+  string module_id = 1;
+  repeated TaskTypeDescriptor task_types = 2;
+}
+
+message RegisterTaskTypesResponse {
+  int32 registered_count = 1;
+  string message = 2;
+}
+
+message UnregisterTaskTypesRequest {
+  string module_id = 1;
+}
