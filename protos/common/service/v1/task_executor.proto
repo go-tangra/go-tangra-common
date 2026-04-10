@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package common.service.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// TaskExecutorService is implemented by any module that wants the scheduler
+// to execute tasks on its behalf. When a scheduled task fires, the scheduler
+// calls ExecuteTask on the owning module's gRPC endpoint.
+//
+// Modules register their task types with the scheduler via
+// scheduler.service.v1.TaskTypeRegistrationService, then implement this
+// service to handle the actual execution.
+service TaskExecutorService {
+  // ExecuteTask is called by the scheduler when a task of a registered type fires.
+  // The module performs the work and returns a result.
+  rpc ExecuteTask(ExecuteTaskRequest) returns (ExecuteTaskResponse);
+}
+
+// ExecuteTaskRequest contains all context the module needs to run the task.
+message ExecuteTaskRequest {
+  // Unique execution ID for idempotency and tracing.
+  string execution_id = 1;
+
+  // The task type name (e.g., "paperless:ocr-reindex", "deployer:cleanup-images").
+  string task_type = 2;
+
+  // Opaque JSON payload defined when the task was created.
+  // The scheduler stores and forwards this without interpretation.
+  bytes payload = 3;
+
+  // Which attempt this is (1-based).
+  int32 attempt = 4;
+
+  // Maximum attempts configured for this task.
+  int32 max_attempts = 5;
+
+  // Tenant context — forwarded from the task record.
+  uint32 tenant_id = 10;
+
+  // When the task was originally scheduled to fire.
+  google.protobuf.Timestamp scheduled_at = 11;
+}
+
+// ExecuteTaskResponse reports the outcome of task execution.
+message ExecuteTaskResponse {
+  // Whether the task completed successfully.
+  bool success = 1;
+
+  // Human-readable message (logged by scheduler, shown in UI).
+  string message = 2;
+
+  // Optional structured result data (stored by scheduler for wait-result tasks).
+  bytes result_data = 3;
+
+  // If true, the scheduler should NOT retry even if attempts remain.
+  // Use for permanent failures (e.g., invalid config, missing resource).
+  bool permanent_failure = 4;
+}
