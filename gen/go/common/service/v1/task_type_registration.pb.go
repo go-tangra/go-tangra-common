@@ -9,7 +9,6 @@ package commonpb
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -256,11 +255,55 @@ func (x *UnregisterTaskTypesRequest) GetModuleId() string {
 	return ""
 }
 
+type UnregisterTaskTypesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnregisterTaskTypesResponse) Reset() {
+	*x = UnregisterTaskTypesResponse{}
+	mi := &file_common_service_v1_task_type_registration_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnregisterTaskTypesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnregisterTaskTypesResponse) ProtoMessage() {}
+
+func (x *UnregisterTaskTypesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_common_service_v1_task_type_registration_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnregisterTaskTypesResponse.ProtoReflect.Descriptor instead.
+func (*UnregisterTaskTypesResponse) Descriptor() ([]byte, []int) {
+	return file_common_service_v1_task_type_registration_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UnregisterTaskTypesResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_common_service_v1_task_type_registration_proto protoreflect.FileDescriptor
 
 const file_common_service_v1_task_type_registration_proto_rawDesc = "" +
 	"\n" +
-	".common/service/v1/task_type_registration.proto\x12\x11common.service.v1\x1a\x1bgoogle/protobuf/empty.proto\"\xec\x01\n" +
+	".common/service/v1/task_type_registration.proto\x12\x11common.service.v1\"\xec\x01\n" +
 	"\x12TaskTypeDescriptor\x12\x1b\n" +
 	"\ttask_type\x18\x01 \x01(\tR\btaskType\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12 \n" +
@@ -276,10 +319,12 @@ const file_common_service_v1_task_type_registration_proto_rawDesc = "" +
 	"\x10registered_count\x18\x01 \x01(\x05R\x0fregisteredCount\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"9\n" +
 	"\x1aUnregisterTaskTypesRequest\x12\x1b\n" +
-	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId2\xeb\x01\n" +
+	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\"7\n" +
+	"\x1bUnregisterTaskTypesResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\x83\x02\n" +
 	"\x1bTaskTypeRegistrationService\x12n\n" +
-	"\x11RegisterTaskTypes\x12+.common.service.v1.RegisterTaskTypesRequest\x1a,.common.service.v1.RegisterTaskTypesResponse\x12\\\n" +
-	"\x13UnregisterTaskTypes\x12-.common.service.v1.UnregisterTaskTypesRequest\x1a\x16.google.protobuf.EmptyB\xe1\x01\n" +
+	"\x11RegisterTaskTypes\x12+.common.service.v1.RegisterTaskTypesRequest\x1a,.common.service.v1.RegisterTaskTypesResponse\x12t\n" +
+	"\x13UnregisterTaskTypes\x12-.common.service.v1.UnregisterTaskTypesRequest\x1a..common.service.v1.UnregisterTaskTypesResponseB\xe1\x01\n" +
 	"\x15com.common.service.v1B\x19TaskTypeRegistrationProtoP\x01ZGgithub.com/go-tangra/go-tangra-common/gen/go/common/service/v1;commonpb\xa2\x02\x03CSX\xaa\x02\x11Common.Service.V1\xca\x02\x11Common\\Service\\V1\xe2\x02\x1dCommon\\Service\\V1\\GPBMetadata\xea\x02\x13Common::Service::V1b\x06proto3"
 
 var (
@@ -294,20 +339,20 @@ func file_common_service_v1_task_type_registration_proto_rawDescGZIP() []byte {
 	return file_common_service_v1_task_type_registration_proto_rawDescData
 }
 
-var file_common_service_v1_task_type_registration_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_common_service_v1_task_type_registration_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_common_service_v1_task_type_registration_proto_goTypes = []any{
-	(*TaskTypeDescriptor)(nil),         // 0: common.service.v1.TaskTypeDescriptor
-	(*RegisterTaskTypesRequest)(nil),   // 1: common.service.v1.RegisterTaskTypesRequest
-	(*RegisterTaskTypesResponse)(nil),  // 2: common.service.v1.RegisterTaskTypesResponse
-	(*UnregisterTaskTypesRequest)(nil), // 3: common.service.v1.UnregisterTaskTypesRequest
-	(*emptypb.Empty)(nil),              // 4: google.protobuf.Empty
+	(*TaskTypeDescriptor)(nil),          // 0: common.service.v1.TaskTypeDescriptor
+	(*RegisterTaskTypesRequest)(nil),    // 1: common.service.v1.RegisterTaskTypesRequest
+	(*RegisterTaskTypesResponse)(nil),   // 2: common.service.v1.RegisterTaskTypesResponse
+	(*UnregisterTaskTypesRequest)(nil),  // 3: common.service.v1.UnregisterTaskTypesRequest
+	(*UnregisterTaskTypesResponse)(nil), // 4: common.service.v1.UnregisterTaskTypesResponse
 }
 var file_common_service_v1_task_type_registration_proto_depIdxs = []int32{
 	0, // 0: common.service.v1.RegisterTaskTypesRequest.task_types:type_name -> common.service.v1.TaskTypeDescriptor
 	1, // 1: common.service.v1.TaskTypeRegistrationService.RegisterTaskTypes:input_type -> common.service.v1.RegisterTaskTypesRequest
 	3, // 2: common.service.v1.TaskTypeRegistrationService.UnregisterTaskTypes:input_type -> common.service.v1.UnregisterTaskTypesRequest
 	2, // 3: common.service.v1.TaskTypeRegistrationService.RegisterTaskTypes:output_type -> common.service.v1.RegisterTaskTypesResponse
-	4, // 4: common.service.v1.TaskTypeRegistrationService.UnregisterTaskTypes:output_type -> google.protobuf.Empty
+	4, // 4: common.service.v1.TaskTypeRegistrationService.UnregisterTaskTypes:output_type -> common.service.v1.UnregisterTaskTypesResponse
 	3, // [3:5] is the sub-list for method output_type
 	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -326,7 +371,7 @@ func file_common_service_v1_task_type_registration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_service_v1_task_type_registration_proto_rawDesc), len(file_common_service_v1_task_type_registration_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

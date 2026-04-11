@@ -9,7 +9,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -19,7 +18,6 @@ var (
 	_ redact.Redactor
 	_ codes.Code
 	_ status.Status
-	_ emptypb.Empty
 )
 
 // RegisterRedactedTaskTypeRegistrationServiceServer wraps the TaskTypeRegistrationServiceServer with the redacted server and registers the service in GRPC
@@ -53,7 +51,7 @@ func (s *redactedTaskTypeRegistrationServiceServer) RegisterTaskTypes(ctx contex
 
 // UnregisterTaskTypes is the redacted wrapper for the actual TaskTypeRegistrationServiceServer.UnregisterTaskTypes method
 // Unary RPC
-func (s *redactedTaskTypeRegistrationServiceServer) UnregisterTaskTypes(ctx context.Context, in *UnregisterTaskTypesRequest) (*emptypb.Empty, error) {
+func (s *redactedTaskTypeRegistrationServiceServer) UnregisterTaskTypes(ctx context.Context, in *UnregisterTaskTypesRequest) (*UnregisterTaskTypesResponse, error) {
 	res, err := s.srv.UnregisterTaskTypes(ctx, in)
 	if !s.bypass.CheckInternal(ctx) {
 		// Apply redaction to the response
@@ -113,5 +111,15 @@ func (x *UnregisterTaskTypesRequest) Redact() string {
 	}
 
 	// Safe field: ModuleId
+	return x.String()
+}
+
+// Redact method implementation for UnregisterTaskTypesResponse
+func (x *UnregisterTaskTypesResponse) Redact() string {
+	if x == nil {
+		return ""
+	}
+
+	// Safe field: Message
 	return x.String()
 }

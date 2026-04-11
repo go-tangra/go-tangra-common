@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -35,7 +34,7 @@ type TaskTypeRegistrationServiceClient interface {
 	// RegisterTaskTypes declares which task types a module can execute.
 	RegisterTaskTypes(ctx context.Context, in *RegisterTaskTypesRequest, opts ...grpc.CallOption) (*RegisterTaskTypesResponse, error)
 	// UnregisterTaskTypes removes all task types for a module.
-	UnregisterTaskTypes(ctx context.Context, in *UnregisterTaskTypesRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UnregisterTaskTypes(ctx context.Context, in *UnregisterTaskTypesRequest, opts ...grpc.CallOption) (*UnregisterTaskTypesResponse, error)
 }
 
 type taskTypeRegistrationServiceClient struct {
@@ -56,9 +55,9 @@ func (c *taskTypeRegistrationServiceClient) RegisterTaskTypes(ctx context.Contex
 	return out, nil
 }
 
-func (c *taskTypeRegistrationServiceClient) UnregisterTaskTypes(ctx context.Context, in *UnregisterTaskTypesRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *taskTypeRegistrationServiceClient) UnregisterTaskTypes(ctx context.Context, in *UnregisterTaskTypesRequest, opts ...grpc.CallOption) (*UnregisterTaskTypesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
+	out := new(UnregisterTaskTypesResponse)
 	err := c.cc.Invoke(ctx, TaskTypeRegistrationService_UnregisterTaskTypes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -77,7 +76,7 @@ type TaskTypeRegistrationServiceServer interface {
 	// RegisterTaskTypes declares which task types a module can execute.
 	RegisterTaskTypes(context.Context, *RegisterTaskTypesRequest) (*RegisterTaskTypesResponse, error)
 	// UnregisterTaskTypes removes all task types for a module.
-	UnregisterTaskTypes(context.Context, *UnregisterTaskTypesRequest) (*emptypb.Empty, error)
+	UnregisterTaskTypes(context.Context, *UnregisterTaskTypesRequest) (*UnregisterTaskTypesResponse, error)
 	mustEmbedUnimplementedTaskTypeRegistrationServiceServer()
 }
 
@@ -91,7 +90,7 @@ type UnimplementedTaskTypeRegistrationServiceServer struct{}
 func (UnimplementedTaskTypeRegistrationServiceServer) RegisterTaskTypes(context.Context, *RegisterTaskTypesRequest) (*RegisterTaskTypesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RegisterTaskTypes not implemented")
 }
-func (UnimplementedTaskTypeRegistrationServiceServer) UnregisterTaskTypes(context.Context, *UnregisterTaskTypesRequest) (*emptypb.Empty, error) {
+func (UnimplementedTaskTypeRegistrationServiceServer) UnregisterTaskTypes(context.Context, *UnregisterTaskTypesRequest) (*UnregisterTaskTypesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UnregisterTaskTypes not implemented")
 }
 func (UnimplementedTaskTypeRegistrationServiceServer) mustEmbedUnimplementedTaskTypeRegistrationServiceServer() {
