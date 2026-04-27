@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -291,6 +292,24 @@ func (b *RequestBuilder) parseSingleValue(fd protoreflect.FieldDescriptor, value
 				return protoreflect.Value{}, err
 			}
 			wrapper.Set(fd.Message().Fields().ByName("value"), protoreflect.ValueOfBool(bv))
+			return protoreflect.ValueOfMessage(wrapper), nil
+		case "google.protobuf.Timestamp":
+			t, err := time.Parse(time.RFC3339Nano, value)
+			if err != nil {
+				return protoreflect.Value{}, fmt.Errorf("invalid RFC3339 timestamp %q: %w", value, err)
+			}
+			wrapper := dynamicpb.NewMessage(fd.Message())
+			wrapper.Set(fd.Message().Fields().ByName("seconds"), protoreflect.ValueOfInt64(t.Unix()))
+			wrapper.Set(fd.Message().Fields().ByName("nanos"), protoreflect.ValueOfInt32(int32(t.Nanosecond())))
+			return protoreflect.ValueOfMessage(wrapper), nil
+		case "google.protobuf.Duration":
+			d, err := time.ParseDuration(value)
+			if err != nil {
+				return protoreflect.Value{}, fmt.Errorf("invalid duration %q: %w", value, err)
+			}
+			wrapper := dynamicpb.NewMessage(fd.Message())
+			wrapper.Set(fd.Message().Fields().ByName("seconds"), protoreflect.ValueOfInt64(int64(d.Seconds())))
+			wrapper.Set(fd.Message().Fields().ByName("nanos"), protoreflect.ValueOfInt32(int32(d.Nanoseconds()%int64(time.Second))))
 			return protoreflect.ValueOfMessage(wrapper), nil
 		}
 		return protoreflect.Value{}, fmt.Errorf("cannot parse string to message type: %s", fullName)
