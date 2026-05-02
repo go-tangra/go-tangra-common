@@ -95,10 +95,10 @@ func Ensure(ctx context.Context, cfg EnsureConfig) (*CertManager, error) {
 
 	client := commonV1.NewLcmBootstrapServiceClient(conn)
 
-	if err := signAndPersist(ctx, client, cfg, commonV1.CertificateKind_CERT_KIND_SERVER, "server", cfg.ModuleID+"-service"); err != nil {
+	if err := signAndPersist(ctx, client, cfg, commonV1.CertificateKind_CERTIFICATE_KIND_SERVER, "server", cfg.ModuleID+"-service"); err != nil {
 		return nil, fmt.Errorf("server cert: %w", err)
 	}
-	if err := signAndPersist(ctx, client, cfg, commonV1.CertificateKind_CERT_KIND_CLIENT, "client", "lcm-"+cfg.ModuleID); err != nil {
+	if err := signAndPersist(ctx, client, cfg, commonV1.CertificateKind_CERTIFICATE_KIND_CLIENT, "client", "lcm-"+cfg.ModuleID); err != nil {
 		return nil, fmt.Errorf("client cert: %w", err)
 	}
 

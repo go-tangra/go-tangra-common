@@ -45,14 +45,17 @@ service LcmBootstrapService {
 }
 
 // CertificateKind discriminates the ExtKeyUsage the issued cert
-// carries. CERT_KIND_SERVER includes both serverAuth and clientAuth
-// because every module is also an mTLS client when it dials its
-// peers. CERT_KIND_CLIENT is clientAuth only — used for callers like
-// admin-service that never accept inbound mTLS.
+// carries. CERTIFICATE_KIND_SERVER includes both serverAuth and
+// clientAuth because every module is also an mTLS client when it dials
+// its peers. CERTIFICATE_KIND_CLIENT is clientAuth only — used for
+// callers like admin-service that never accept inbound mTLS.
+//
+// Enum values are prefixed with the full enum name (CERTIFICATE_KIND_*)
+// to satisfy buf lint's ENUM_VALUE_PREFIX rule.
 enum CertificateKind {
-  CERT_KIND_UNSPECIFIED = 0;
-  CERT_KIND_SERVER      = 1;
-  CERT_KIND_CLIENT      = 2;
+  CERTIFICATE_KIND_UNSPECIFIED = 0;
+  CERTIFICATE_KIND_SERVER      = 1;
+  CERTIFICATE_KIND_CLIENT      = 2;
 }
 
 message SignModuleCertificateRequest {

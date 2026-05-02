@@ -23,29 +23,32 @@ const (
 )
 
 // CertificateKind discriminates the ExtKeyUsage the issued cert
-// carries. CERT_KIND_SERVER includes both serverAuth and clientAuth
-// because every module is also an mTLS client when it dials its
-// peers. CERT_KIND_CLIENT is clientAuth only — used for callers like
-// admin-service that never accept inbound mTLS.
+// carries. CERTIFICATE_KIND_SERVER includes both serverAuth and
+// clientAuth because every module is also an mTLS client when it dials
+// its peers. CERTIFICATE_KIND_CLIENT is clientAuth only — used for
+// callers like admin-service that never accept inbound mTLS.
+//
+// Enum values are prefixed with the full enum name (CERTIFICATE_KIND_*)
+// to satisfy buf lint's ENUM_VALUE_PREFIX rule.
 type CertificateKind int32
 
 const (
-	CertificateKind_CERT_KIND_UNSPECIFIED CertificateKind = 0
-	CertificateKind_CERT_KIND_SERVER      CertificateKind = 1
-	CertificateKind_CERT_KIND_CLIENT      CertificateKind = 2
+	CertificateKind_CERTIFICATE_KIND_UNSPECIFIED CertificateKind = 0
+	CertificateKind_CERTIFICATE_KIND_SERVER      CertificateKind = 1
+	CertificateKind_CERTIFICATE_KIND_CLIENT      CertificateKind = 2
 )
 
 // Enum value maps for CertificateKind.
 var (
 	CertificateKind_name = map[int32]string{
-		0: "CERT_KIND_UNSPECIFIED",
-		1: "CERT_KIND_SERVER",
-		2: "CERT_KIND_CLIENT",
+		0: "CERTIFICATE_KIND_UNSPECIFIED",
+		1: "CERTIFICATE_KIND_SERVER",
+		2: "CERTIFICATE_KIND_CLIENT",
 	}
 	CertificateKind_value = map[string]int32{
-		"CERT_KIND_UNSPECIFIED": 0,
-		"CERT_KIND_SERVER":      1,
-		"CERT_KIND_CLIENT":      2,
+		"CERTIFICATE_KIND_UNSPECIFIED": 0,
+		"CERTIFICATE_KIND_SERVER":      1,
+		"CERTIFICATE_KIND_CLIENT":      2,
 	}
 )
 
@@ -154,7 +157,7 @@ func (x *SignModuleCertificateRequest) GetKind() CertificateKind {
 	if x != nil {
 		return x.Kind
 	}
-	return CertificateKind_CERT_KIND_UNSPECIFIED
+	return CertificateKind_CERTIFICATE_KIND_UNSPECIFIED
 }
 
 func (x *SignModuleCertificateRequest) GetLifetimeDays() uint32 {
@@ -536,11 +539,11 @@ const file_common_service_v1_bootstrap_service_proto_rawDesc = "" +
 	"\x0eclient_key_pem\x18\x03 \x01(\tR\fclientKeyPem\x124\n" +
 	"\x16server_certificate_pem\x18\x04 \x01(\tR\x14serverCertificatePem\x12$\n" +
 	"\x0eserver_key_pem\x18\x05 \x01(\tR\fserverKeyPem\x12\x18\n" +
-	"\amessage\x18\x06 \x01(\tR\amessage*X\n" +
-	"\x0fCertificateKind\x12\x19\n" +
-	"\x15CERT_KIND_UNSPECIFIED\x10\x00\x12\x14\n" +
-	"\x10CERT_KIND_SERVER\x10\x01\x12\x14\n" +
-	"\x10CERT_KIND_CLIENT\x10\x022\xf0\x02\n" +
+	"\amessage\x18\x06 \x01(\tR\amessage*m\n" +
+	"\x0fCertificateKind\x12 \n" +
+	"\x1cCERTIFICATE_KIND_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17CERTIFICATE_KIND_SERVER\x10\x01\x12\x1b\n" +
+	"\x17CERTIFICATE_KIND_CLIENT\x10\x022\xf0\x02\n" +
 	"\x13LcmBootstrapService\x12z\n" +
 	"\x15SignModuleCertificate\x12/.common.service.v1.SignModuleCertificateRequest\x1a0.common.service.v1.SignModuleCertificateResponse\x12\\\n" +
 	"\vGetCABundle\x12%.common.service.v1.GetCABundleRequest\x1a&.common.service.v1.GetCABundleResponse\x12\x7f\n" +
