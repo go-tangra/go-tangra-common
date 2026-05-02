@@ -19,6 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	LcmBootstrapService_SignModuleCertificate_FullMethodName = "/common.service.v1.LcmBootstrapService/SignModuleCertificate"
+	LcmBootstrapService_GetCABundle_FullMethodName           = "/common.service.v1.LcmBootstrapService/GetCABundle"
 	LcmBootstrapService_BootstrapCertificates_FullMethodName = "/common.service.v1.LcmBootstrapService/BootstrapCertificates"
 )
 
@@ -26,11 +28,43 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// LcmBootstrapService allows modules to request their own TLS certificates from LCM.
-// This enables self-service certificate provisioning without requiring LCM source changes.
+// LcmBootstrapService is the dedicated, non-mTLS surface modules use
+// at startup to (a) discover the platform CA and (b) get their server
+// + client certificates signed. It runs on a separate port from the
+// mTLS gRPC API so a module without a valid cert can still reach it
+// — the module itself dials directly, no admin gateway in the path.
+//
+// Auth: the shared MODULE_BOOTSTRAP_SECRET in every request body.
+//
+//	Same secret across all modules; rotated by re-deploying.
+//
+// Trust on first byte: clients verify the LCM server cert against a
+//
+//	pinned SHA-256 fingerprint (LCM_CA_FINGERPRINT) before the
+//	TLS handshake completes. There is no "trust on first use" —
+//	a missing pin is a fatal config error.
+//
+// Rate limit: per (module_id) bucket on the server side. Default is
+//
+//	10 mints per hour per module — far above the legitimate
+//	30-day renewal cadence, low enough to make secret-leak abuse
+//	trivially detectable.
 type LcmBootstrapServiceClient interface {
-	// BootstrapCertificates generates and returns CA, client, and server certificates for a module.
-	// The caller must provide a valid module_registration_secret.
+	// SignModuleCertificate is the canonical bootstrap RPC. The module
+	// generates its keypair locally and submits a CSR; the private key
+	// never crosses the wire. The response carries the issued cert,
+	// the current CA bundle (so the module can pin), and the issuance
+	// timestamps so the module can plan its next renewal.
+	SignModuleCertificate(ctx context.Context, in *SignModuleCertificateRequest, opts ...grpc.CallOption) (*SignModuleCertificateResponse, error)
+	// GetCABundle returns just the current root CA + its fingerprint.
+	// Used by tooling (CI smoke tests, operator scripts) that wants
+	// to discover the pin without requesting a cert.
+	GetCABundle(ctx context.Context, in *GetCABundleRequest, opts ...grpc.CallOption) (*GetCABundleResponse, error)
+	// Deprecated: Do not use.
+	// BootstrapCertificates is the legacy flow where LCM mints the key
+	// server-side and ships it over the wire. Kept for back-compat
+	// with pre-rework modules; new code MUST use SignModuleCertificate
+	// instead so private keys stay on the host that owns them.
 	BootstrapCertificates(ctx context.Context, in *BootstrapCertificatesRequest, opts ...grpc.CallOption) (*BootstrapCertificatesResponse, error)
 }
 
@@ -42,6 +76,27 @@ func NewLcmBootstrapServiceClient(cc grpc.ClientConnInterface) LcmBootstrapServi
 	return &lcmBootstrapServiceClient{cc}
 }
 
+func (c *lcmBootstrapServiceClient) SignModuleCertificate(ctx context.Context, in *SignModuleCertificateRequest, opts ...grpc.CallOption) (*SignModuleCertificateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SignModuleCertificateResponse)
+	err := c.cc.Invoke(ctx, LcmBootstrapService_SignModuleCertificate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *lcmBootstrapServiceClient) GetCABundle(ctx context.Context, in *GetCABundleRequest, opts ...grpc.CallOption) (*GetCABundleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCABundleResponse)
+	err := c.cc.Invoke(ctx, LcmBootstrapService_GetCABundle_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Deprecated: Do not use.
 func (c *lcmBootstrapServiceClient) BootstrapCertificates(ctx context.Context, in *BootstrapCertificatesRequest, opts ...grpc.CallOption) (*BootstrapCertificatesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BootstrapCertificatesResponse)
@@ -56,11 +111,43 @@ func (c *lcmBootstrapServiceClient) BootstrapCertificates(ctx context.Context, i
 // All implementations must embed UnimplementedLcmBootstrapServiceServer
 // for forward compatibility.
 //
-// LcmBootstrapService allows modules to request their own TLS certificates from LCM.
-// This enables self-service certificate provisioning without requiring LCM source changes.
+// LcmBootstrapService is the dedicated, non-mTLS surface modules use
+// at startup to (a) discover the platform CA and (b) get their server
+// + client certificates signed. It runs on a separate port from the
+// mTLS gRPC API so a module without a valid cert can still reach it
+// — the module itself dials directly, no admin gateway in the path.
+//
+// Auth: the shared MODULE_BOOTSTRAP_SECRET in every request body.
+//
+//	Same secret across all modules; rotated by re-deploying.
+//
+// Trust on first byte: clients verify the LCM server cert against a
+//
+//	pinned SHA-256 fingerprint (LCM_CA_FINGERPRINT) before the
+//	TLS handshake completes. There is no "trust on first use" —
+//	a missing pin is a fatal config error.
+//
+// Rate limit: per (module_id) bucket on the server side. Default is
+//
+//	10 mints per hour per module — far above the legitimate
+//	30-day renewal cadence, low enough to make secret-leak abuse
+//	trivially detectable.
 type LcmBootstrapServiceServer interface {
-	// BootstrapCertificates generates and returns CA, client, and server certificates for a module.
-	// The caller must provide a valid module_registration_secret.
+	// SignModuleCertificate is the canonical bootstrap RPC. The module
+	// generates its keypair locally and submits a CSR; the private key
+	// never crosses the wire. The response carries the issued cert,
+	// the current CA bundle (so the module can pin), and the issuance
+	// timestamps so the module can plan its next renewal.
+	SignModuleCertificate(context.Context, *SignModuleCertificateRequest) (*SignModuleCertificateResponse, error)
+	// GetCABundle returns just the current root CA + its fingerprint.
+	// Used by tooling (CI smoke tests, operator scripts) that wants
+	// to discover the pin without requesting a cert.
+	GetCABundle(context.Context, *GetCABundleRequest) (*GetCABundleResponse, error)
+	// Deprecated: Do not use.
+	// BootstrapCertificates is the legacy flow where LCM mints the key
+	// server-side and ships it over the wire. Kept for back-compat
+	// with pre-rework modules; new code MUST use SignModuleCertificate
+	// instead so private keys stay on the host that owns them.
 	BootstrapCertificates(context.Context, *BootstrapCertificatesRequest) (*BootstrapCertificatesResponse, error)
 	mustEmbedUnimplementedLcmBootstrapServiceServer()
 }
@@ -72,6 +159,12 @@ type LcmBootstrapServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedLcmBootstrapServiceServer struct{}
 
+func (UnimplementedLcmBootstrapServiceServer) SignModuleCertificate(context.Context, *SignModuleCertificateRequest) (*SignModuleCertificateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SignModuleCertificate not implemented")
+}
+func (UnimplementedLcmBootstrapServiceServer) GetCABundle(context.Context, *GetCABundleRequest) (*GetCABundleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCABundle not implemented")
+}
 func (UnimplementedLcmBootstrapServiceServer) BootstrapCertificates(context.Context, *BootstrapCertificatesRequest) (*BootstrapCertificatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BootstrapCertificates not implemented")
 }
@@ -94,6 +187,42 @@ func RegisterLcmBootstrapServiceServer(s grpc.ServiceRegistrar, srv LcmBootstrap
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&LcmBootstrapService_ServiceDesc, srv)
+}
+
+func _LcmBootstrapService_SignModuleCertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignModuleCertificateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LcmBootstrapServiceServer).SignModuleCertificate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LcmBootstrapService_SignModuleCertificate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LcmBootstrapServiceServer).SignModuleCertificate(ctx, req.(*SignModuleCertificateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LcmBootstrapService_GetCABundle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCABundleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LcmBootstrapServiceServer).GetCABundle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LcmBootstrapService_GetCABundle_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LcmBootstrapServiceServer).GetCABundle(ctx, req.(*GetCABundleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _LcmBootstrapService_BootstrapCertificates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -121,6 +250,14 @@ var LcmBootstrapService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "common.service.v1.LcmBootstrapService",
 	HandlerType: (*LcmBootstrapServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SignModuleCertificate",
+			Handler:    _LcmBootstrapService_SignModuleCertificate_Handler,
+		},
+		{
+			MethodName: "GetCABundle",
+			Handler:    _LcmBootstrapService_GetCABundle_Handler,
+		},
 		{
 			MethodName: "BootstrapCertificates",
 			Handler:    _LcmBootstrapService_BootstrapCertificates_Handler,

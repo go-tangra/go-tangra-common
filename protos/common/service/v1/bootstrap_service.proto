@@ -2,21 +2,123 @@ syntax = "proto3";
 
 package common.service.v1;
 
-// LcmBootstrapService allows modules to request their own TLS certificates from LCM.
-// This enables self-service certificate provisioning without requiring LCM source changes.
+import "google/protobuf/timestamp.proto";
+
+// LcmBootstrapService is the dedicated, non-mTLS surface modules use
+// at startup to (a) discover the platform CA and (b) get their server
+// + client certificates signed. It runs on a separate port from the
+// mTLS gRPC API so a module without a valid cert can still reach it
+// — the module itself dials directly, no admin gateway in the path.
+//
+// Auth: the shared MODULE_BOOTSTRAP_SECRET in every request body.
+//       Same secret across all modules; rotated by re-deploying.
+//
+// Trust on first byte: clients verify the LCM server cert against a
+//       pinned SHA-256 fingerprint (LCM_CA_FINGERPRINT) before the
+//       TLS handshake completes. There is no "trust on first use" —
+//       a missing pin is a fatal config error.
+//
+// Rate limit: per (module_id) bucket on the server side. Default is
+//       10 mints per hour per module — far above the legitimate
+//       30-day renewal cadence, low enough to make secret-leak abuse
+//       trivially detectable.
 service LcmBootstrapService {
-  // BootstrapCertificates generates and returns CA, client, and server certificates for a module.
-  // The caller must provide a valid module_registration_secret.
-  rpc BootstrapCertificates(BootstrapCertificatesRequest) returns (BootstrapCertificatesResponse);
+  // SignModuleCertificate is the canonical bootstrap RPC. The module
+  // generates its keypair locally and submits a CSR; the private key
+  // never crosses the wire. The response carries the issued cert,
+  // the current CA bundle (so the module can pin), and the issuance
+  // timestamps so the module can plan its next renewal.
+  rpc SignModuleCertificate(SignModuleCertificateRequest) returns (SignModuleCertificateResponse);
+
+  // GetCABundle returns just the current root CA + its fingerprint.
+  // Used by tooling (CI smoke tests, operator scripts) that wants
+  // to discover the pin without requesting a cert.
+  rpc GetCABundle(GetCABundleRequest) returns (GetCABundleResponse);
+
+  // BootstrapCertificates is the legacy flow where LCM mints the key
+  // server-side and ships it over the wire. Kept for back-compat
+  // with pre-rework modules; new code MUST use SignModuleCertificate
+  // instead so private keys stay on the host that owns them.
+  rpc BootstrapCertificates(BootstrapCertificatesRequest) returns (BootstrapCertificatesResponse) {
+    option deprecated = true;
+  }
 }
 
+// CertificateKind discriminates the ExtKeyUsage the issued cert
+// carries. CERT_KIND_SERVER includes both serverAuth and clientAuth
+// because every module is also an mTLS client when it dials its
+// peers. CERT_KIND_CLIENT is clientAuth only — used for callers like
+// admin-service that never accept inbound mTLS.
+enum CertificateKind {
+  CERT_KIND_UNSPECIFIED = 0;
+  CERT_KIND_SERVER      = 1;
+  CERT_KIND_CLIENT      = 2;
+}
+
+message SignModuleCertificateRequest {
+  // Module identifier (e.g. "sms-gw"). Used as the CN on client
+  // certs and as the namespace for rate-limit accounting.
+  string module_id = 1;
+
+  // MODULE_BOOTSTRAP_SECRET. Validated server-side against the
+  // configured value; mismatch returns Unauthenticated.
+  string secret = 2;
+
+  // PEM-encoded PKCS#10 certificate signing request. The CN, SANs,
+  // and public key on the resulting cert come from this CSR; the
+  // server only adds serial number, validity window, issuer, and
+  // ExtKeyUsage.
+  string csr_pem = 3;
+
+  CertificateKind kind = 4;
+
+  // Optional cap on the issued cert's lifetime in days. The server
+  // clamps to its configured maximum — supplying a larger value just
+  // gets the maximum back, not an error. Empty/zero = server default
+  // (1 year).
+  optional uint32 lifetime_days = 5;
+}
+
+message SignModuleCertificateResponse {
+  // The issued cert, PEM-encoded.
+  string certificate_pem = 1;
+
+  // The current root CA, PEM-encoded. Modules write this to disk so
+  // their own server-side TLS handler can validate inbound mTLS.
+  string ca_certificate_pem = 2;
+
+  // SHA-256 hex of the DER bytes of ca_certificate_pem above. Modules
+  // memoize this on disk and use it on next boot to verify the LCM
+  // server cert before the TLS handshake completes — defends against
+  // a MitM impersonating LCM during a rotation window.
+  string ca_fingerprint_sha256 = 3;
+
+  google.protobuf.Timestamp not_before = 4;
+  google.protobuf.Timestamp not_after  = 5;
+
+  // Decimal serial number — exposed so audit logs on both sides can
+  // correlate without parsing the cert.
+  string serial_number = 6;
+}
+
+message GetCABundleRequest {}
+
+message GetCABundleResponse {
+  string ca_certificate_pem    = 1;
+  string ca_fingerprint_sha256 = 2;
+}
+
+// Deprecated request shape — kept for the legacy BootstrapCertificates
+// RPC. Do not extend.
 message BootstrapCertificatesRequest {
-  string module_id = 1;            // Module identifier (e.g. "deployer", "warden")
-  string secret = 2;               // module_registration_secret for authentication
-  repeated string dns_names = 3;   // SANs for server certificate
-  repeated string ip_addresses = 4; // IP SANs for server certificate
+  string module_id = 1;
+  string secret = 2;
+  repeated string dns_names = 3;
+  repeated string ip_addresses = 4;
 }
 
+// Deprecated response shape — kept for the legacy BootstrapCertificates
+// RPC. Do not extend.
 message BootstrapCertificatesResponse {
   string ca_certificate_pem = 1;
   string client_certificate_pem = 2;

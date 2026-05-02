@@ -9,6 +9,7 @@ package commonpb
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -21,19 +22,344 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CertificateKind discriminates the ExtKeyUsage the issued cert
+// carries. CERT_KIND_SERVER includes both serverAuth and clientAuth
+// because every module is also an mTLS client when it dials its
+// peers. CERT_KIND_CLIENT is clientAuth only — used for callers like
+// admin-service that never accept inbound mTLS.
+type CertificateKind int32
+
+const (
+	CertificateKind_CERT_KIND_UNSPECIFIED CertificateKind = 0
+	CertificateKind_CERT_KIND_SERVER      CertificateKind = 1
+	CertificateKind_CERT_KIND_CLIENT      CertificateKind = 2
+)
+
+// Enum value maps for CertificateKind.
+var (
+	CertificateKind_name = map[int32]string{
+		0: "CERT_KIND_UNSPECIFIED",
+		1: "CERT_KIND_SERVER",
+		2: "CERT_KIND_CLIENT",
+	}
+	CertificateKind_value = map[string]int32{
+		"CERT_KIND_UNSPECIFIED": 0,
+		"CERT_KIND_SERVER":      1,
+		"CERT_KIND_CLIENT":      2,
+	}
+)
+
+func (x CertificateKind) Enum() *CertificateKind {
+	p := new(CertificateKind)
+	*p = x
+	return p
+}
+
+func (x CertificateKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CertificateKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_common_service_v1_bootstrap_service_proto_enumTypes[0].Descriptor()
+}
+
+func (CertificateKind) Type() protoreflect.EnumType {
+	return &file_common_service_v1_bootstrap_service_proto_enumTypes[0]
+}
+
+func (x CertificateKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CertificateKind.Descriptor instead.
+func (CertificateKind) EnumDescriptor() ([]byte, []int) {
+	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{0}
+}
+
+type SignModuleCertificateRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Module identifier (e.g. "sms-gw"). Used as the CN on client
+	// certs and as the namespace for rate-limit accounting.
+	ModuleId string `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
+	// MODULE_BOOTSTRAP_SECRET. Validated server-side against the
+	// configured value; mismatch returns Unauthenticated.
+	Secret string `protobuf:"bytes,2,opt,name=secret,proto3" json:"secret,omitempty"`
+	// PEM-encoded PKCS#10 certificate signing request. The CN, SANs,
+	// and public key on the resulting cert come from this CSR; the
+	// server only adds serial number, validity window, issuer, and
+	// ExtKeyUsage.
+	CsrPem string          `protobuf:"bytes,3,opt,name=csr_pem,json=csrPem,proto3" json:"csr_pem,omitempty"`
+	Kind   CertificateKind `protobuf:"varint,4,opt,name=kind,proto3,enum=common.service.v1.CertificateKind" json:"kind,omitempty"`
+	// Optional cap on the issued cert's lifetime in days. The server
+	// clamps to its configured maximum — supplying a larger value just
+	// gets the maximum back, not an error. Empty/zero = server default
+	// (1 year).
+	LifetimeDays  *uint32 `protobuf:"varint,5,opt,name=lifetime_days,json=lifetimeDays,proto3,oneof" json:"lifetime_days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignModuleCertificateRequest) Reset() {
+	*x = SignModuleCertificateRequest{}
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignModuleCertificateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignModuleCertificateRequest) ProtoMessage() {}
+
+func (x *SignModuleCertificateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignModuleCertificateRequest.ProtoReflect.Descriptor instead.
+func (*SignModuleCertificateRequest) Descriptor() ([]byte, []int) {
+	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *SignModuleCertificateRequest) GetModuleId() string {
+	if x != nil {
+		return x.ModuleId
+	}
+	return ""
+}
+
+func (x *SignModuleCertificateRequest) GetSecret() string {
+	if x != nil {
+		return x.Secret
+	}
+	return ""
+}
+
+func (x *SignModuleCertificateRequest) GetCsrPem() string {
+	if x != nil {
+		return x.CsrPem
+	}
+	return ""
+}
+
+func (x *SignModuleCertificateRequest) GetKind() CertificateKind {
+	if x != nil {
+		return x.Kind
+	}
+	return CertificateKind_CERT_KIND_UNSPECIFIED
+}
+
+func (x *SignModuleCertificateRequest) GetLifetimeDays() uint32 {
+	if x != nil && x.LifetimeDays != nil {
+		return *x.LifetimeDays
+	}
+	return 0
+}
+
+type SignModuleCertificateResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The issued cert, PEM-encoded.
+	CertificatePem string `protobuf:"bytes,1,opt,name=certificate_pem,json=certificatePem,proto3" json:"certificate_pem,omitempty"`
+	// The current root CA, PEM-encoded. Modules write this to disk so
+	// their own server-side TLS handler can validate inbound mTLS.
+	CaCertificatePem string `protobuf:"bytes,2,opt,name=ca_certificate_pem,json=caCertificatePem,proto3" json:"ca_certificate_pem,omitempty"`
+	// SHA-256 hex of the DER bytes of ca_certificate_pem above. Modules
+	// memoize this on disk and use it on next boot to verify the LCM
+	// server cert before the TLS handshake completes — defends against
+	// a MitM impersonating LCM during a rotation window.
+	CaFingerprintSha256 string                 `protobuf:"bytes,3,opt,name=ca_fingerprint_sha256,json=caFingerprintSha256,proto3" json:"ca_fingerprint_sha256,omitempty"`
+	NotBefore           *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=not_before,json=notBefore,proto3" json:"not_before,omitempty"`
+	NotAfter            *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=not_after,json=notAfter,proto3" json:"not_after,omitempty"`
+	// Decimal serial number — exposed so audit logs on both sides can
+	// correlate without parsing the cert.
+	SerialNumber  string `protobuf:"bytes,6,opt,name=serial_number,json=serialNumber,proto3" json:"serial_number,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignModuleCertificateResponse) Reset() {
+	*x = SignModuleCertificateResponse{}
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignModuleCertificateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignModuleCertificateResponse) ProtoMessage() {}
+
+func (x *SignModuleCertificateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignModuleCertificateResponse.ProtoReflect.Descriptor instead.
+func (*SignModuleCertificateResponse) Descriptor() ([]byte, []int) {
+	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SignModuleCertificateResponse) GetCertificatePem() string {
+	if x != nil {
+		return x.CertificatePem
+	}
+	return ""
+}
+
+func (x *SignModuleCertificateResponse) GetCaCertificatePem() string {
+	if x != nil {
+		return x.CaCertificatePem
+	}
+	return ""
+}
+
+func (x *SignModuleCertificateResponse) GetCaFingerprintSha256() string {
+	if x != nil {
+		return x.CaFingerprintSha256
+	}
+	return ""
+}
+
+func (x *SignModuleCertificateResponse) GetNotBefore() *timestamppb.Timestamp {
+	if x != nil {
+		return x.NotBefore
+	}
+	return nil
+}
+
+func (x *SignModuleCertificateResponse) GetNotAfter() *timestamppb.Timestamp {
+	if x != nil {
+		return x.NotAfter
+	}
+	return nil
+}
+
+func (x *SignModuleCertificateResponse) GetSerialNumber() string {
+	if x != nil {
+		return x.SerialNumber
+	}
+	return ""
+}
+
+type GetCABundleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCABundleRequest) Reset() {
+	*x = GetCABundleRequest{}
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCABundleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCABundleRequest) ProtoMessage() {}
+
+func (x *GetCABundleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCABundleRequest.ProtoReflect.Descriptor instead.
+func (*GetCABundleRequest) Descriptor() ([]byte, []int) {
+	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{2}
+}
+
+type GetCABundleResponse struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	CaCertificatePem    string                 `protobuf:"bytes,1,opt,name=ca_certificate_pem,json=caCertificatePem,proto3" json:"ca_certificate_pem,omitempty"`
+	CaFingerprintSha256 string                 `protobuf:"bytes,2,opt,name=ca_fingerprint_sha256,json=caFingerprintSha256,proto3" json:"ca_fingerprint_sha256,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *GetCABundleResponse) Reset() {
+	*x = GetCABundleResponse{}
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCABundleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCABundleResponse) ProtoMessage() {}
+
+func (x *GetCABundleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCABundleResponse.ProtoReflect.Descriptor instead.
+func (*GetCABundleResponse) Descriptor() ([]byte, []int) {
+	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetCABundleResponse) GetCaCertificatePem() string {
+	if x != nil {
+		return x.CaCertificatePem
+	}
+	return ""
+}
+
+func (x *GetCABundleResponse) GetCaFingerprintSha256() string {
+	if x != nil {
+		return x.CaFingerprintSha256
+	}
+	return ""
+}
+
+// Deprecated request shape — kept for the legacy BootstrapCertificates
+// RPC. Do not extend.
 type BootstrapCertificatesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ModuleId      string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`          // Module identifier (e.g. "deployer", "warden")
-	Secret        string                 `protobuf:"bytes,2,opt,name=secret,proto3" json:"secret,omitempty"`                              // module_registration_secret for authentication
-	DnsNames      []string               `protobuf:"bytes,3,rep,name=dns_names,json=dnsNames,proto3" json:"dns_names,omitempty"`          // SANs for server certificate
-	IpAddresses   []string               `protobuf:"bytes,4,rep,name=ip_addresses,json=ipAddresses,proto3" json:"ip_addresses,omitempty"` // IP SANs for server certificate
+	ModuleId      string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
+	Secret        string                 `protobuf:"bytes,2,opt,name=secret,proto3" json:"secret,omitempty"`
+	DnsNames      []string               `protobuf:"bytes,3,rep,name=dns_names,json=dnsNames,proto3" json:"dns_names,omitempty"`
+	IpAddresses   []string               `protobuf:"bytes,4,rep,name=ip_addresses,json=ipAddresses,proto3" json:"ip_addresses,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BootstrapCertificatesRequest) Reset() {
 	*x = BootstrapCertificatesRequest{}
-	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[0]
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -45,7 +371,7 @@ func (x *BootstrapCertificatesRequest) String() string {
 func (*BootstrapCertificatesRequest) ProtoMessage() {}
 
 func (x *BootstrapCertificatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[0]
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -58,7 +384,7 @@ func (x *BootstrapCertificatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootstrapCertificatesRequest.ProtoReflect.Descriptor instead.
 func (*BootstrapCertificatesRequest) Descriptor() ([]byte, []int) {
-	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{0}
+	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *BootstrapCertificatesRequest) GetModuleId() string {
@@ -89,6 +415,8 @@ func (x *BootstrapCertificatesRequest) GetIpAddresses() []string {
 	return nil
 }
 
+// Deprecated response shape — kept for the legacy BootstrapCertificates
+// RPC. Do not extend.
 type BootstrapCertificatesResponse struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	CaCertificatePem     string                 `protobuf:"bytes,1,opt,name=ca_certificate_pem,json=caCertificatePem,proto3" json:"ca_certificate_pem,omitempty"`
@@ -103,7 +431,7 @@ type BootstrapCertificatesResponse struct {
 
 func (x *BootstrapCertificatesResponse) Reset() {
 	*x = BootstrapCertificatesResponse{}
-	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[1]
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -115,7 +443,7 @@ func (x *BootstrapCertificatesResponse) String() string {
 func (*BootstrapCertificatesResponse) ProtoMessage() {}
 
 func (x *BootstrapCertificatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[1]
+	mi := &file_common_service_v1_bootstrap_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -128,7 +456,7 @@ func (x *BootstrapCertificatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootstrapCertificatesResponse.ProtoReflect.Descriptor instead.
 func (*BootstrapCertificatesResponse) Descriptor() ([]byte, []int) {
-	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{1}
+	return file_common_service_v1_bootstrap_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *BootstrapCertificatesResponse) GetCaCertificatePem() string {
@@ -177,7 +505,26 @@ var File_common_service_v1_bootstrap_service_proto protoreflect.FileDescriptor
 
 const file_common_service_v1_bootstrap_service_proto_rawDesc = "" +
 	"\n" +
-	")common/service/v1/bootstrap_service.proto\x12\x11common.service.v1\"\x93\x01\n" +
+	")common/service/v1/bootstrap_service.proto\x12\x11common.service.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe0\x01\n" +
+	"\x1cSignModuleCertificateRequest\x12\x1b\n" +
+	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\x12\x16\n" +
+	"\x06secret\x18\x02 \x01(\tR\x06secret\x12\x17\n" +
+	"\acsr_pem\x18\x03 \x01(\tR\x06csrPem\x126\n" +
+	"\x04kind\x18\x04 \x01(\x0e2\".common.service.v1.CertificateKindR\x04kind\x12(\n" +
+	"\rlifetime_days\x18\x05 \x01(\rH\x00R\flifetimeDays\x88\x01\x01B\x10\n" +
+	"\x0e_lifetime_days\"\xc3\x02\n" +
+	"\x1dSignModuleCertificateResponse\x12'\n" +
+	"\x0fcertificate_pem\x18\x01 \x01(\tR\x0ecertificatePem\x12,\n" +
+	"\x12ca_certificate_pem\x18\x02 \x01(\tR\x10caCertificatePem\x122\n" +
+	"\x15ca_fingerprint_sha256\x18\x03 \x01(\tR\x13caFingerprintSha256\x129\n" +
+	"\n" +
+	"not_before\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tnotBefore\x127\n" +
+	"\tnot_after\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\bnotAfter\x12#\n" +
+	"\rserial_number\x18\x06 \x01(\tR\fserialNumber\"\x14\n" +
+	"\x12GetCABundleRequest\"w\n" +
+	"\x13GetCABundleResponse\x12,\n" +
+	"\x12ca_certificate_pem\x18\x01 \x01(\tR\x10caCertificatePem\x122\n" +
+	"\x15ca_fingerprint_sha256\x18\x02 \x01(\tR\x13caFingerprintSha256\"\x93\x01\n" +
 	"\x1cBootstrapCertificatesRequest\x12\x1b\n" +
 	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\x12\x16\n" +
 	"\x06secret\x18\x02 \x01(\tR\x06secret\x12\x1b\n" +
@@ -189,9 +536,15 @@ const file_common_service_v1_bootstrap_service_proto_rawDesc = "" +
 	"\x0eclient_key_pem\x18\x03 \x01(\tR\fclientKeyPem\x124\n" +
 	"\x16server_certificate_pem\x18\x04 \x01(\tR\x14serverCertificatePem\x12$\n" +
 	"\x0eserver_key_pem\x18\x05 \x01(\tR\fserverKeyPem\x12\x18\n" +
-	"\amessage\x18\x06 \x01(\tR\amessage2\x91\x01\n" +
+	"\amessage\x18\x06 \x01(\tR\amessage*X\n" +
+	"\x0fCertificateKind\x12\x19\n" +
+	"\x15CERT_KIND_UNSPECIFIED\x10\x00\x12\x14\n" +
+	"\x10CERT_KIND_SERVER\x10\x01\x12\x14\n" +
+	"\x10CERT_KIND_CLIENT\x10\x022\xf0\x02\n" +
 	"\x13LcmBootstrapService\x12z\n" +
-	"\x15BootstrapCertificates\x12/.common.service.v1.BootstrapCertificatesRequest\x1a0.common.service.v1.BootstrapCertificatesResponseB\xdd\x01\n" +
+	"\x15SignModuleCertificate\x12/.common.service.v1.SignModuleCertificateRequest\x1a0.common.service.v1.SignModuleCertificateResponse\x12\\\n" +
+	"\vGetCABundle\x12%.common.service.v1.GetCABundleRequest\x1a&.common.service.v1.GetCABundleResponse\x12\x7f\n" +
+	"\x15BootstrapCertificates\x12/.common.service.v1.BootstrapCertificatesRequest\x1a0.common.service.v1.BootstrapCertificatesResponse\"\x03\x88\x02\x01B\xdd\x01\n" +
 	"\x15com.common.service.v1B\x15BootstrapServiceProtoP\x01ZGgithub.com/go-tangra/go-tangra-common/gen/go/common/service/v1;commonpb\xa2\x02\x03CSX\xaa\x02\x11Common.Service.V1\xca\x02\x11Common\\Service\\V1\xe2\x02\x1dCommon\\Service\\V1\\GPBMetadata\xea\x02\x13Common::Service::V1b\x06proto3"
 
 var (
@@ -206,19 +559,33 @@ func file_common_service_v1_bootstrap_service_proto_rawDescGZIP() []byte {
 	return file_common_service_v1_bootstrap_service_proto_rawDescData
 }
 
-var file_common_service_v1_bootstrap_service_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_common_service_v1_bootstrap_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_common_service_v1_bootstrap_service_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_common_service_v1_bootstrap_service_proto_goTypes = []any{
-	(*BootstrapCertificatesRequest)(nil),  // 0: common.service.v1.BootstrapCertificatesRequest
-	(*BootstrapCertificatesResponse)(nil), // 1: common.service.v1.BootstrapCertificatesResponse
+	(CertificateKind)(0),                  // 0: common.service.v1.CertificateKind
+	(*SignModuleCertificateRequest)(nil),  // 1: common.service.v1.SignModuleCertificateRequest
+	(*SignModuleCertificateResponse)(nil), // 2: common.service.v1.SignModuleCertificateResponse
+	(*GetCABundleRequest)(nil),            // 3: common.service.v1.GetCABundleRequest
+	(*GetCABundleResponse)(nil),           // 4: common.service.v1.GetCABundleResponse
+	(*BootstrapCertificatesRequest)(nil),  // 5: common.service.v1.BootstrapCertificatesRequest
+	(*BootstrapCertificatesResponse)(nil), // 6: common.service.v1.BootstrapCertificatesResponse
+	(*timestamppb.Timestamp)(nil),         // 7: google.protobuf.Timestamp
 }
 var file_common_service_v1_bootstrap_service_proto_depIdxs = []int32{
-	0, // 0: common.service.v1.LcmBootstrapService.BootstrapCertificates:input_type -> common.service.v1.BootstrapCertificatesRequest
-	1, // 1: common.service.v1.LcmBootstrapService.BootstrapCertificates:output_type -> common.service.v1.BootstrapCertificatesResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: common.service.v1.SignModuleCertificateRequest.kind:type_name -> common.service.v1.CertificateKind
+	7, // 1: common.service.v1.SignModuleCertificateResponse.not_before:type_name -> google.protobuf.Timestamp
+	7, // 2: common.service.v1.SignModuleCertificateResponse.not_after:type_name -> google.protobuf.Timestamp
+	1, // 3: common.service.v1.LcmBootstrapService.SignModuleCertificate:input_type -> common.service.v1.SignModuleCertificateRequest
+	3, // 4: common.service.v1.LcmBootstrapService.GetCABundle:input_type -> common.service.v1.GetCABundleRequest
+	5, // 5: common.service.v1.LcmBootstrapService.BootstrapCertificates:input_type -> common.service.v1.BootstrapCertificatesRequest
+	2, // 6: common.service.v1.LcmBootstrapService.SignModuleCertificate:output_type -> common.service.v1.SignModuleCertificateResponse
+	4, // 7: common.service.v1.LcmBootstrapService.GetCABundle:output_type -> common.service.v1.GetCABundleResponse
+	6, // 8: common.service.v1.LcmBootstrapService.BootstrapCertificates:output_type -> common.service.v1.BootstrapCertificatesResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_common_service_v1_bootstrap_service_proto_init() }
@@ -226,18 +593,20 @@ func file_common_service_v1_bootstrap_service_proto_init() {
 	if File_common_service_v1_bootstrap_service_proto != nil {
 		return
 	}
+	file_common_service_v1_bootstrap_service_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_service_v1_bootstrap_service_proto_rawDesc), len(file_common_service_v1_bootstrap_service_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   2,
+			NumEnums:      1,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_common_service_v1_bootstrap_service_proto_goTypes,
 		DependencyIndexes: file_common_service_v1_bootstrap_service_proto_depIdxs,
+		EnumInfos:         file_common_service_v1_bootstrap_service_proto_enumTypes,
 		MessageInfos:      file_common_service_v1_bootstrap_service_proto_msgTypes,
 	}.Build()
 	File_common_service_v1_bootstrap_service_proto = out.File

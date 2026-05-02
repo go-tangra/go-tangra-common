@@ -413,11 +413,15 @@ func (t *Transcoder) createConnection(moduleID, endpoint string) (*grpc.ClientCo
 }
 
 // loadModuleTLSCredentials loads TLS credentials for connecting to a specific module.
-// Convention-based paths:
+// Convention-based paths (registration-rework Phase 1 layout produced by
+// cert.Ensure):
 //
 //	CA:     /app/certs/ca/ca.crt
-//	Client: /app/certs/admin/admin.crt
-//	Key:    /app/certs/admin/admin.key
+//	Client: /app/certs/client/client.crt
+//	Key:    /app/certs/client/client.key
+//
+// Falls back to legacy per-module {MODULE}_CA_CERT_PATH env vars when the
+// convention path is absent, for back-compat with pre-Phase-1 deployments.
 func (t *Transcoder) loadModuleTLSCredentials(moduleID string) (credentials.TransportCredentials, error) {
 	certsDir := os.Getenv("CERTS_DIR")
 	if certsDir == "" {
@@ -425,9 +429,18 @@ func (t *Transcoder) loadModuleTLSCredentials(moduleID string) (credentials.Tran
 	}
 
 	caCertPath := certsDir + "/ca/ca.crt"
-	clientCertPath := certsDir + "/admin/admin.crt"
-	clientKeyPath := certsDir + "/admin/admin.key"
+	clientCertPath := certsDir + "/client/client.crt"
+	clientKeyPath := certsDir + "/client/client.key"
 	serverName := moduleID + "-service"
+
+	// Allow {MODULE}_SERVER_NAME to override the default convention,
+	// even when we use the convention-path certs. Some modules (notably
+	// lcm) issued themselves a server cert whose CN/SAN doesn't follow
+	// the {moduleID}-service pattern — lcm's is "lcm-server". Without
+	// this override, TLS handshake fails and the transcoder times out.
+	if env := os.Getenv(strings.ToUpper(moduleID) + "_SERVER_NAME"); env != "" {
+		serverName = env
+	}
 
 	if _, err := os.Stat(caCertPath); err == nil {
 		if _, err := os.Stat(clientCertPath); err == nil {
