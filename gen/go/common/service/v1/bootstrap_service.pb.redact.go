@@ -9,6 +9,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -18,6 +19,7 @@ var (
 	_ redact.Redactor
 	_ codes.Code
 	_ status.Status
+	_ timestamppb.Timestamp
 )
 
 // RegisterRedactedLcmBootstrapServiceServer wraps the LcmBootstrapServiceServer with the redacted server and registers the service in GRPC
@@ -38,6 +40,28 @@ type redactedLcmBootstrapServiceServer struct {
 	bypass redact.Bypass
 }
 
+// SignModuleCertificate is the redacted wrapper for the actual LcmBootstrapServiceServer.SignModuleCertificate method
+// Unary RPC
+func (s *redactedLcmBootstrapServiceServer) SignModuleCertificate(ctx context.Context, in *SignModuleCertificateRequest) (*SignModuleCertificateResponse, error) {
+	res, err := s.srv.SignModuleCertificate(ctx, in)
+	if !s.bypass.CheckInternal(ctx) {
+		// Apply redaction to the response
+		redact.Apply(res)
+	}
+	return res, err
+}
+
+// GetCABundle is the redacted wrapper for the actual LcmBootstrapServiceServer.GetCABundle method
+// Unary RPC
+func (s *redactedLcmBootstrapServiceServer) GetCABundle(ctx context.Context, in *GetCABundleRequest) (*GetCABundleResponse, error) {
+	res, err := s.srv.GetCABundle(ctx, in)
+	if !s.bypass.CheckInternal(ctx) {
+		// Apply redaction to the response
+		redact.Apply(res)
+	}
+	return res, err
+}
+
 // BootstrapCertificates is the redacted wrapper for the actual LcmBootstrapServiceServer.BootstrapCertificates method
 // Unary RPC
 func (s *redactedLcmBootstrapServiceServer) BootstrapCertificates(ctx context.Context, in *BootstrapCertificatesRequest) (*BootstrapCertificatesResponse, error) {
@@ -47,6 +71,64 @@ func (s *redactedLcmBootstrapServiceServer) BootstrapCertificates(ctx context.Co
 		redact.Apply(res)
 	}
 	return res, err
+}
+
+// Redact method implementation for SignModuleCertificateRequest
+func (x *SignModuleCertificateRequest) Redact() string {
+	if x == nil {
+		return ""
+	}
+
+	// Safe field: ModuleId
+
+	// Safe field: Secret
+
+	// Safe field: CsrPem
+
+	// Safe field: Kind
+
+	// Safe field: LifetimeDays
+	return x.String()
+}
+
+// Redact method implementation for SignModuleCertificateResponse
+func (x *SignModuleCertificateResponse) Redact() string {
+	if x == nil {
+		return ""
+	}
+
+	// Safe field: CertificatePem
+
+	// Safe field: CaCertificatePem
+
+	// Safe field: CaFingerprintSha256
+
+	// Safe field: NotBefore
+
+	// Safe field: NotAfter
+
+	// Safe field: SerialNumber
+	return x.String()
+}
+
+// Redact method implementation for GetCABundleRequest
+func (x *GetCABundleRequest) Redact() string {
+	if x == nil {
+		return ""
+	}
+	return x.String()
+}
+
+// Redact method implementation for GetCABundleResponse
+func (x *GetCABundleResponse) Redact() string {
+	if x == nil {
+		return ""
+	}
+
+	// Safe field: CaCertificatePem
+
+	// Safe field: CaFingerprintSha256
+	return x.String()
 }
 
 // Redact method implementation for BootstrapCertificatesRequest

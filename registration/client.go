@@ -208,7 +208,18 @@ func (c *Client) Close() error {
 // Uses convention paths: {CERTS_DIR}/ca/ca.crt, {CERTS_DIR}/{module}/{module}.crt
 // where module is the calling module's client cert (e.g. "notification/notification.crt").
 // Returns nil if cert files are not found (caller should fall back to insecure).
+//
+// Escape hatch: REGISTRATION_INSECURE=1 short-circuits this function
+// and forces an insecure dial. Required when admin-service exposes
+// the registration RPC on a plain-gRPC port (the legacy default) AND
+// the module has a real client cert on disk that the heuristic below
+// would otherwise pick up — without the override the dial would hang
+// forever against the plain server.
 func loadAdminClientTLS(l *log.Helper) credentials.TransportCredentials {
+	if os.Getenv("REGISTRATION_INSECURE") == "1" {
+		return nil
+	}
+
 	certsDir := os.Getenv("CERTS_DIR")
 	if certsDir == "" {
 		certsDir = "/app/certs"
