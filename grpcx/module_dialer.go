@@ -142,15 +142,28 @@ func (d *ModuleDialer) dialWithMTLS(endpoint, serverName string) (*grpc.ClientCo
 	return conn, nil
 }
 
-// loadClientTLS loads mTLS credentials using convention-based paths:
+// loadClientTLS loads mTLS credentials, accepting either of two on-disk layouts:
 //
-//	CA:  {certsDir}/ca/ca.crt
-//	Cert: {certsDir}/{callerModuleID}/{callerModuleID}.crt
-//	Key:  {certsDir}/{callerModuleID}/{callerModuleID}.key
+//	A. LCM-issuer layout (used by LCM, which holds pre-issued certs for every
+//	   module under its own data directory):
+//	     CA:   {certsDir}/ca/ca.crt
+//	     Cert: {certsDir}/{callerModuleID}/{callerModuleID}.crt
+//	     Key:  {certsDir}/{callerModuleID}/{callerModuleID}.key
+//
+//	B. cert.Ensure layout (what every other module writes on first boot via
+//	   go-tangra-common/cert.Ensure):
+//	     CA:   {certsDir}/ca/ca.crt
+//	     Cert: {certsDir}/client/client.crt
+//	     Key:  {certsDir}/client/client.key
+//
+// Layout A is tried first because the LCM-issued path is module-specific and
+// less ambiguous when multiple modules share the same /app/data root. If the
+// caller-module-id files don't exist, fall back to the generic client/ pair.
+// Without this fallback, a module that uses cert.Ensure (which writes the
+// "client/" layout) can never dial another module's mTLS endpoint, because
+// the dialer would only ever look for files that cert.Ensure never creates.
 func (d *ModuleDialer) loadClientTLS(serverName string) (credentials.TransportCredentials, error) {
 	caCertPath := filepath.Join(d.certsDir, "ca", "ca.crt")
-	clientCertPath := filepath.Join(d.certsDir, d.callerModuleID, d.callerModuleID+".crt")
-	clientKeyPath := filepath.Join(d.certsDir, d.callerModuleID, d.callerModuleID+".key")
 
 	caCert, err := os.ReadFile(caCertPath)
 	if err != nil {
@@ -162,9 +175,19 @@ func (d *ModuleDialer) loadClientTLS(serverName string) (credentials.TransportCr
 		return nil, fmt.Errorf("parse CA cert from %s", caCertPath)
 	}
 
-	clientCert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
+	moduleCertPath := filepath.Join(d.certsDir, d.callerModuleID, d.callerModuleID+".crt")
+	moduleKeyPath := filepath.Join(d.certsDir, d.callerModuleID, d.callerModuleID+".key")
+	clientCert, err := tls.LoadX509KeyPair(moduleCertPath, moduleKeyPath)
 	if err != nil {
-		return nil, fmt.Errorf("load client cert %s: %w", clientCertPath, err)
+		// Try the cert.Ensure layout before giving up.
+		genericCertPath := filepath.Join(d.certsDir, "client", "client.crt")
+		genericKeyPath := filepath.Join(d.certsDir, "client", "client.key")
+		fallbackCert, fallbackErr := tls.LoadX509KeyPair(genericCertPath, genericKeyPath)
+		if fallbackErr != nil {
+			return nil, fmt.Errorf("load client cert: tried %s (%v) and %s (%v)",
+				moduleCertPath, err, genericCertPath, fallbackErr)
+		}
+		clientCert = fallbackCert
 	}
 
 	tlsConfig := &tls.Config{
