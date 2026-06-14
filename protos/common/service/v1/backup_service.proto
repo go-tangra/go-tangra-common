@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package common.service.v1;
+
+// BackupService is implemented by any module that backs up its own PostgreSQL
+// tables. The DB-less go-tangra-backup orchestrator calls these RPCs to collect
+// and restore a module's data; it only relays/stores the opaque archive bytes
+// and never touches the database itself.
+//
+// Both RPCs stream so arbitrarily large tables never have to be buffered whole.
+service BackupService {
+  // ExportBackup streams the module's backup archive (a self-describing sqldump
+  // archive) back to the caller in chunks.
+  rpc ExportBackup(ExportBackupRequest) returns (stream ExportBackupResponse);
+
+  // ImportBackup streams an archive into the module and reports the outcome.
+  // The first message must carry options; subsequent messages carry chunks.
+  rpc ImportBackup(stream ImportBackupRequest) returns (ImportBackupResponse);
+}
+
+// RestoreMode selects how a restore reconciles with existing data.
+enum RestoreMode {
+  RESTORE_MODE_UNSPECIFIED = 0; // treated as MERGE
+  RESTORE_MODE_MERGE = 1;       // upsert backup rows; keep rows not in the backup
+  RESTORE_MODE_FULL_SYNC = 2;   // upsert backup rows; delete rows not in the backup
+}
+
+message ExportBackupRequest {
+  // Include secret material that lives outside Postgres (e.g. Vault) in the
+  // archive's extras. Modules without such material ignore this.
+  bool include_secrets = 1;
+}
+
+// ExportBackupResponse is one slice of the opaque archive byte stream.
+message ExportBackupResponse {
+  bytes content = 1;
+}
+
+// ImportBackupRequest is the client-streaming input: one options message first,
+// then any number of chunk messages.
+message ImportBackupRequest {
+  oneof payload {
+    ImportOptions options = 1;
+    bytes content = 2;
+  }
+}
+
+message ImportOptions {
+  RestoreMode mode = 1;
+  bool include_secrets = 2;
+}
+
+// TableResult reports what happened to one table during a restore.
+message TableResult {
+  string table = 1;
+  int64 rows = 2;    // rows upserted from the backup
+  int64 deleted = 3; // rows removed (full-sync only)
+  bool skipped = 4;
+  string note = 5;
+}
+
+message ImportBackupResponse {
+  bool success = 1;
+  string module = 2;
+  repeated TableResult tables = 3;
+  repeated string warnings = 4;
+}
