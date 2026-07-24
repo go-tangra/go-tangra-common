@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	commonV1 "github.com/go-tangra/go-tangra-common/gen/go/common/service/v1"
+	"github.com/go-tangra/go-tangra-common/grpcx"
 )
 
 // Config holds the registration configuration
@@ -321,6 +322,9 @@ func createConnection(endpoint string, l *log.Helper) (*grpc.ClientConn, error) 
 	conn, err := grpc.NewClient(
 		endpoint,
 		transportCreds,
+		// Present the shared module secret on every call so the admin :7787
+		// control plane can authenticate the caller as a platform module.
+		grpc.WithChainUnaryInterceptor(grpcx.ModuleSecretUnaryClientInterceptor()),
 		grpc.WithConnectParams(connectParams),
 		grpc.WithKeepaliveParams(keepaliveParams),
 		grpc.WithDefaultServiceConfig(`{

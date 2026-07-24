@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"os"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-kratos/kratos/v2/errors"
@@ -15,6 +17,30 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+)
+
+// EnvIdentityMode is the environment variable controlling the mTLS peer-identity
+// allow-list rollout: off | warn | enforce (default warn).
+const EnvIdentityMode = "MTLS_IDENTITY_MODE"
+
+// EnvAllowedIdentities is a comma-separated list of extra caller CNs merged
+// into the compiled-in allow-list. It is an operational escape hatch so a
+// missing legitimate caller can be permitted without a rebuild.
+const EnvAllowedIdentities = "MTLS_ALLOWED_IDENTITIES"
+
+// Identity-check rollout modes. mTLS validates the certificate issuer (any
+// LCM-signed cert is accepted) unconditionally; these modes additionally gate
+// on the caller's Common Name matching a configured allow-list.
+const (
+	// IdentityModeOff disables the CN allow-list entirely (issuer-only,
+	// legacy behaviour).
+	IdentityModeOff = "off"
+	// IdentityModeWarn logs callers whose CN is not in the allow-list but
+	// still authenticates them. Safe default while modules are redeployed
+	// with matching client certs.
+	IdentityModeWarn = "warn"
+	// IdentityModeEnforce rejects callers whose CN is not in the allow-list.
+	IdentityModeEnforce = "enforce"
 )
 
 // Options configures the mTLS middleware
@@ -28,6 +54,18 @@ type Options struct {
 
 	// TrustedOrgUnits are organizational unit values that are considered trusted
 	TrustedOrgUnits []string
+
+	// AllowedCommonNames is the allow-list of caller certificate Common Names
+	// permitted to reach protected endpoints. Legitimate module client certs
+	// have CN "lcm-<moduleID>" (see go-tangra-common/cert). When empty, the
+	// CN allow-list is disabled and validation falls back to issuer-only —
+	// preserving legacy behaviour for callers that have not configured it.
+	AllowedCommonNames []string
+
+	// IdentityMode controls how a CN that is not in AllowedCommonNames is
+	// handled: off | warn | enforce. When empty it is read from the
+	// MTLS_IDENTITY_MODE environment variable, defaulting to "warn".
+	IdentityMode string
 }
 
 // Option is a function that configures Options
@@ -54,6 +92,26 @@ func WithTrustedOrgUnits(ous ...string) Option {
 	}
 }
 
+// WithAllowedIdentities restricts protected endpoints to callers whose client
+// certificate Common Name is in cns. Module client certs use CN
+// "lcm-<moduleID>", so a module reachable only from the gateway would pass
+// WithAllowedIdentities("lcm-<gatewayModuleID>"). When no identities are
+// configured the allow-list is disabled (issuer-only validation).
+func WithAllowedIdentities(cns ...string) Option {
+	return func(o *Options) {
+		o.AllowedCommonNames = append(o.AllowedCommonNames, cns...)
+	}
+}
+
+// WithIdentityMode overrides the CN allow-list rollout mode
+// (off | warn | enforce). When unset the MTLS_IDENTITY_MODE environment
+// variable is used, defaulting to "warn".
+func WithIdentityMode(mode string) Option {
+	return func(o *Options) {
+		o.IdentityMode = mode
+	}
+}
+
 // MTLSMiddleware creates a mutual TLS authentication middleware
 func MTLSMiddleware(logger log.Logger, opts ...Option) middleware.Middleware {
 	l := log.NewHelper(log.With(logger, "module", "middleware/mtls"))
@@ -67,6 +125,23 @@ func MTLSMiddleware(logger log.Logger, opts ...Option) middleware.Middleware {
 
 	for _, opt := range opts {
 		opt(options)
+	}
+
+	// Resolve the identity-check mode: explicit option wins, else env, else warn.
+	if options.IdentityMode == "" {
+		options.IdentityMode = os.Getenv(EnvIdentityMode)
+	}
+	if options.IdentityMode == "" {
+		options.IdentityMode = IdentityModeWarn
+	}
+	// Merge any operator-provided extra identities from the environment.
+	for cn := range strings.SplitSeq(os.Getenv(EnvAllowedIdentities), ",") {
+		if cn = strings.TrimSpace(cn); cn != "" {
+			options.AllowedCommonNames = append(options.AllowedCommonNames, cn)
+		}
+	}
+	if len(options.AllowedCommonNames) > 0 {
+		l.Infof("mTLS peer-identity allow-list active (mode=%s, %d identities)", options.IdentityMode, len(options.AllowedCommonNames))
 	}
 
 	return func(handler middleware.Handler) middleware.Handler {
@@ -160,6 +235,11 @@ func extractClientInfo(p *peer.Peer, l *log.Helper, opts *Options) *ClientInfo {
 		return clientInfo // Return with IsAuthenticated = false
 	}
 
+	if err := validateCertificateIdentity(clientCert, opts, l); err != nil {
+		l.Debugf("Certificate identity validation failed: %v", err)
+		return clientInfo // Return with IsAuthenticated = false
+	}
+
 	// Mark as authenticated if all validations pass
 	clientInfo.IsAuthenticated = true
 	return clientInfo
@@ -200,6 +280,30 @@ func validateCertificateIssuer(cert *x509.Certificate, opts *Options) error {
 	}
 
 	return fmt.Errorf("certificate not issued by trusted CA (issuer: %s)", issuerStr)
+}
+
+// validateCertificateIdentity checks the caller's certificate Common Name
+// against the configured allow-list. It is a no-op when no allow-list is set
+// (AllowedCommonNames empty) or when the mode is "off", preserving issuer-only
+// behaviour. In "warn" mode a non-listed CN is logged but accepted; in
+// "enforce" mode it is rejected.
+func validateCertificateIdentity(cert *x509.Certificate, opts *Options, l *log.Helper) error {
+	if len(opts.AllowedCommonNames) == 0 || opts.IdentityMode == IdentityModeOff {
+		return nil
+	}
+
+	cn := cert.Subject.CommonName
+	if slices.Contains(opts.AllowedCommonNames, cn) {
+		return nil // Recognised peer identity
+	}
+
+	if opts.IdentityMode == IdentityModeEnforce {
+		return fmt.Errorf("caller certificate CN %q is not an allowed identity", cn)
+	}
+
+	// warn mode: record but accept, so a not-yet-redeployed caller keeps working.
+	l.Warnf("mTLS caller CN %q not in allowed identities (accepted: mode=warn)", cn)
+	return nil
 }
 
 // ExtractClientCertificate extracts the client certificate from the context
